@@ -2,7 +2,26 @@
 -- Этап 2: Бэкенд-каркас и авторизация
 
 -- ============================================
--- 1. ПОЛЬЗОВАТЕЛИ
+-- 1. СТАТУСЫ ПОЛЬЗОВАТЕЛЕЙ (создаём первыми!)
+-- ============================================
+
+CREATE TABLE user_statuses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT UNIQUE NOT NULL,
+  discount_percent DECIMAL(5, 2) DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100),
+  min_spent DECIMAL(10, 2) DEFAULT 0,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Стартовые статусы
+INSERT INTO user_statuses (name, discount_percent, min_spent, sort_order) VALUES
+  ('Bronze', 0, 0, 1),
+  ('Silver', 5, 5000, 2),
+  ('Gold', 8, 10000, 3);
+
+-- ============================================
+-- 2. ПОЛЬЗОВАТЕЛИ
 -- ============================================
 
 CREATE TABLE users (
@@ -22,25 +41,6 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_telegram_id ON users(telegram_id);
 CREATE INDEX idx_users_referral_code ON users(referral_code);
-
--- ============================================
--- 2. СТАТУСЫ ПОЛЬЗОВАТЕЛЕЙ
--- ============================================
-
-CREATE TABLE user_statuses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT UNIQUE NOT NULL,
-  discount_percent DECIMAL(5, 2) DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100),
-  min_spent DECIMAL(10, 2) DEFAULT 0,
-  sort_order INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Стартовые статусы
-INSERT INTO user_statuses (name, discount_percent, min_spent, sort_order) VALUES
-  ('Bronze', 0, 0, 1),
-  ('Silver', 5, 5000, 2),
-  ('Gold', 8, 10000, 3);
 
 -- ============================================
 -- 3. КАТЕГОРИИ
