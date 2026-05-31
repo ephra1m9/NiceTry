@@ -133,3 +133,34 @@ npm run dev
 - [ ] Middleware для защиты роутов
 
 ---
+
+## 2026-05-31 | Этап 2: Авторизация — в процессе
+
+### ✅ Создано агентом
+- API routes для авторизации:
+  - `/api/auth/login` — отправка magic link
+  - `/api/auth/callback` — обработка перехода
+  - `/api/auth/logout` — выход
+  - `/api/user/profile` — профиль пользователя
+  
+- Страницы:
+  - `/auth/login` — форма входа
+  - `/auth/callback` — обработка magic link
+  
+- UI-компоненты:
+  - Header (логотип, поиск, баланс, статус)
+  - Footer (ссылки)
+  - Button, Input, Card, Badge
+  
+- Инфраструктура:
+  - Supabase клиенты (browser, server, admin)
+  - Middleware для защиты роутов
+  - Хуки useUser и useAuth
+
+### 🔄 Следующие шаги
+- [ ] Тестирование авторизации
+- [ ] Создание страницы профиля
+- [ ] Проверка middleware
+- [ ] Начало Этапа 3 (Каталог)
+
+---
