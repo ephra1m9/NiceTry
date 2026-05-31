@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import '../styles/globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
+import { CartProvider } from '@/hooks/useCart'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
@@ -21,11 +22,13 @@ export default function RootLayout({
     <html lang="ru">
       <body className="font-sans text-ink bg-bg antialiased flex flex-col min-h-screen">
         <AuthProvider>
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
+          <CartProvider>
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

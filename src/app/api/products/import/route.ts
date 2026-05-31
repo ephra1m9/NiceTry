@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getServices } from '@/lib/approute'
 
 /**
@@ -9,7 +9,7 @@ import { getServices } from '@/lib/approute'
  */
 export async function POST() {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createClient()
 
     // Проверка авторизации и прав администратора
     const {
