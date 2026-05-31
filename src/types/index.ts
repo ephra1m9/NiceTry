@@ -35,6 +35,10 @@ export interface Product {
   supplier: 'approute' | 'dessly'
   supplier_id?: string
   denomination_id?: string
+  image_url?: string
+  min_amount?: number
+  max_amount?: number
+  supplier_fields?: any
   created_at: string
   updated_at: string
 }

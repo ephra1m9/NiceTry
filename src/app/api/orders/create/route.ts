@@ -188,27 +188,36 @@ export async function POST(request: NextRequest) {
       const referralPercent = 12 // Можно брать из referral_settings
       const referralAmount = (final_amount * referralPercent) / 100
 
-      await supabase
+      // Получаем текущий баланс реферера
+      const { data: referrer } = await supabase
         .from('users')
-        .update({
-          balance: supabase.raw(`balance + ${referralAmount}`),
-        })
+        .select('balance')
         .eq('id', userProfile.referred_by)
+        .single()
 
-      await supabase.from('referral_earnings').insert({
-        referrer_id: userProfile.referred_by,
-        referred_user_id: authUser.id,
-        order_id: order.id,
-        amount: referralAmount,
-      })
+      if (referrer) {
+        await supabase
+          .from('users')
+          .update({
+            balance: Number(referrer.balance) + referralAmount,
+          })
+          .eq('id', userProfile.referred_by)
 
-      await supabase.from('balance_transactions').insert({
-        user_id: userProfile.referred_by,
-        amount: referralAmount,
-        type: 'referral',
-        description: `Реферальный бонус за заказ ${orderNumber}`,
-        order_id: order.id,
-      })
+        await supabase.from('referral_earnings').insert({
+          referrer_id: userProfile.referred_by,
+          referred_user_id: authUser.id,
+          order_id: order.id,
+          amount: referralAmount,
+        })
+
+        await supabase.from('balance_transactions').insert({
+          user_id: userProfile.referred_by,
+          amount: referralAmount,
+          type: 'referral',
+          description: `Реферальный бонус за заказ ${orderNumber}`,
+          order_id: order.id,
+        })
+      }
     }
 
     return NextResponse.json({

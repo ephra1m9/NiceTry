@@ -48,7 +48,7 @@ export default async function AdminDashboard() {
       product_id,
       product_name,
       quantity,
-      products (name, price)
+      price
     `)
     .limit(100)
 
@@ -63,7 +63,7 @@ export default async function AdminDashboard() {
       }
     }
     acc[key].count += item.quantity
-    acc[key].revenue += Number(item.products?.price || 0) * item.quantity
+    acc[key].revenue += Number(item.price || 0) * item.quantity
     return acc
   }, {})
 

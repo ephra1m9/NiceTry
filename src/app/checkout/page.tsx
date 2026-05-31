@@ -264,7 +264,7 @@ export default function CheckoutPage() {
                 variant="primary"
                 size="lg"
                 onClick={handleSubmit}
-                disabled={processing || (paymentMethod === 'balance' && user && user.balance < finalAmount)}
+                disabled={processing || (paymentMethod === 'balance' && user ? user.balance < finalAmount : false)}
                 className="w-full"
               >
                 {processing ? 'Обработка...' : 'Оплатить'}
