@@ -1,11 +1,21 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
+import { Category } from '@/types'
 
 export default function HomePage() {
   const { user, loading } = useAuth()
+  const [categories, setCategories] = useState<Category[]>([])
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => setCategories(data.categories || []))
+      .catch((err) => console.error('Failed to load categories:', err))
+  }, [])
 
   return (
     <div className="container py-12">
@@ -102,6 +112,27 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Категории товаров */}
+      {categories.length > 0 && (
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-navy mb-6 text-center">
+            Категории товаров
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                href={`/category/${category.slug}`}
+                className="card card-pad text-center hover:shadow-md transition-shadow duration-200"
+              >
+                <div className="text-3xl mb-2">{category.icon || '📦'}</div>
+                <h3 className="font-semibold text-navy">{category.name}</h3>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
