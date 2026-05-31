@@ -164,3 +164,161 @@ npm run dev
 - [ ] Начало Этапа 3 (Каталог)
 
 ---
+
+## 2026-05-31 | Этап 2: Авторизация и бэкенд-каркас — ЗАВЕРШЁН ✅
+
+### 1. АВТОРИЗАЦИЯ (Magic Link)
+
+**Supabase SSR клиенты:**
+- `src/lib/supabase/client.ts` — клиент для браузера (createBrowserClient)
+- `src/lib/supabase/server.ts` — клиент для Server Components (createServerClient)
+- `src/lib/supabase/middleware.ts` — клиент для middleware (updateSession)
+- `src/lib/supabase/admin.ts` — admin клиент с service role key
+
+**API Routes:**
+- `src/app/api/auth/login/route.ts` — POST отправка magic link на email
+- `src/app/api/auth/callback/route.ts` — GET обработка callback после клика
+- `src/app/api/auth/logout/route.ts` — POST выход из системы
+
+**Страницы авторизации:**
+- `src/app/auth/login/page.tsx` — форма входа с вводом email
+- `src/app/auth/callback/page.tsx` — обработка перехода по magic link
+
+### 2. ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
+
+**API Routes:**
+- `src/app/api/user/profile/route.ts` — GET/PATCH профиля
+  - Автоматическое создание записи в users при первом входе
+  - Генерация уникального реферального кода (8 символов A-Z0-9)
+  - Назначение стартового статуса Bronze
+  - Обновление telegram_id через PATCH
+
+**Страницы:**
+- `src/app/profile/page.tsx` — страница профиля пользователя
+  - Отображение email, статуса, баланса
+  - Реферальный код с кнопкой копирования
+  - Дата регистрации
+  - Кнопка пополнения баланса
+
+### 3. MIDDLEWARE
+
+**Файл:** `src/middleware.ts`
+- Обновление сессии Supabase на каждом запросе
+- Защита приватных роутов: `/profile`, `/orders`, `/balance`
+- Защита админских роутов: `/admin/*` с проверкой is_admin
+- Редирект неавторизованных на `/auth/login?redirect=...`
+- Matcher исключает статику и изображения
+
+### 4. БАЗОВЫЕ UI-КОМПОНЕНТЫ
+
+**Layout компоненты:**
+- `src/components/Header.tsx` — шапка сайта
+  - Логотип с ссылкой на главную
+  - Поиск (заглушка для будущего)
+  - Баланс и статус пользователя (если авторизован)
+  - Кнопки входа/профиля/выхода
+  
+- `src/components/Footer.tsx` — подвал сайта
+  - 4 колонки: О проекте, Каталог, Информация, Поддержка
+  - Ссылки на основные разделы
+  - Copyright с текущим годом
+
+**UI компоненты (в src/components/ui/):**
+- `Button.tsx` — кнопка с вариантами (primary/secondary/ghost) и размерами (sm/md/lg)
+- `Input.tsx` — поле ввода с поддержкой состояния ошибки
+- `Badge.tsx` — бейдж с вариантами (instant/stock/out/sale/amber)
+- `Card.tsx` — карточка с опциональным padding
+
+**Обновлён layout:**
+- `src/app/layout.tsx` — добавлен AuthProvider, Header, Footer
+- Flex-layout для прижатия футера к низу страницы
+
+### 5. ХУКИ
+
+- `src/hooks/useAuth.tsx` — AuthProvider + useAuth()
+  - Получение текущего пользователя из Supabase Auth
+  - Подписка на изменения авторизации (onAuthStateChange)
+  - Функция signOut() с редиректом на /auth/login
+  
+- `src/hooks/useUser.tsx` — useUser()
+  - Получение профиля из таблицы users через API
+  - Функция updateUser() для обновления профиля
+  - Функция refetch() для перезагрузки данных
+
+### 6. ГЛАВНАЯ СТРАНИЦА
+
+- `src/app/page.tsx` — обновлена главная страница
+  - Адаптивные кнопки в зависимости от статуса авторизации
+  - 3 блока преимуществ (моментальная доставка, безопасность, цены)
+  - Использование UI-компонентов (Button, Card)
+
+### 📦 Установлены зависимости
+
+- `@supabase/ssr` — официальная библиотека для SSR с Supabase Auth
+
+### ✅ Проверка
+
+- **TypeScript компиляция:** успешно (npm run type-check)
+- **Next.js build:** успешно (npm run build)
+- Все роуты собраны корректно:
+  - 3 статические страницы (/, /auth/login, /profile)
+  - 4 API routes (login, callback, logout, profile)
+  - 1 динамическая страница (/auth/callback)
+  - Middleware: 83.2 kB
+
+### Критерии готовности — выполнены ✅
+
+✅ Пользователь может зарегистрироваться через email  
+✅ Пользователь может войти через magic link  
+✅ Пользователь видит свой профиль (email, баланс, статус)  
+✅ Пользователь может выйти  
+✅ Middleware защищает приватные роуты  
+
+### Структура файлов (новые)
+
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── auth/
+│   │   │   ├── login/route.ts
+│   │   │   ├── callback/route.ts
+│   │   │   └── logout/route.ts
+│   │   └── user/
+│   │       └── profile/route.ts
+│   ├── auth/
+│   │   ├── login/page.tsx
+│   │   └── callback/page.tsx
+│   ├── profile/page.tsx
+│   ├── layout.tsx (обновлён)
+│   └── page.tsx (обновлён)
+├── components/
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Input.tsx
+│       ├── Badge.tsx
+│       └── Card.tsx
+├── hooks/
+│   ├── useAuth.tsx
+│   └── useUser.tsx
+├── lib/
+│   └── supabase/
+│       ├── client.ts
+│       ├── server.ts
+│       ├── middleware.ts
+│       └── admin.ts
+└── middleware.ts
+```
+
+### Следующий этап
+
+**Этап 3: Каталог товаров**
+- Синхронизация с AppRoute API
+- Страница каталога с фильтрами и поиском
+- Карточки товаров
+- Страница детального просмотра товара
+- Корзина
+
+---
