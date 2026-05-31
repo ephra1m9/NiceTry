@@ -95,22 +95,23 @@ CREATE INDEX idx_products_active ON products(is_active);
 CREATE INDEX idx_products_supplier ON products(supplier, supplier_service_id);
 
 -- ============================================
--- 5. ФАЙЛОВЫЕ ТОВАРЫ (для моментальной выдачи)
+-- 5. ПРОМОКОДЫ (создаём ДО orders!)
 -- ============================================
 
-CREATE TABLE product_keys (
+CREATE TABLE promo_codes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  key_value TEXT NOT NULL,
-  is_used BOOLEAN DEFAULT FALSE,
-  used_at TIMESTAMPTZ,
-  used_by UUID REFERENCES users(id),
-  order_id UUID,
+  code TEXT UNIQUE NOT NULL,
+  discount_type TEXT NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
+  discount_value DECIMAL(10, 2) NOT NULL CHECK (discount_value > 0),
+  max_uses INTEGER,
+  used_count INTEGER DEFAULT 0,
+  expires_at TIMESTAMPTZ,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_product_keys_product ON product_keys(product_id);
-CREATE INDEX idx_product_keys_available ON product_keys(product_id, is_used) WHERE is_used = FALSE;
+CREATE INDEX idx_promo_codes_code ON promo_codes(code);
+CREATE INDEX idx_promo_codes_active ON promo_codes(is_active);
 
 -- ============================================
 -- 6. ЗАКАЗЫ
@@ -158,23 +159,22 @@ CREATE TABLE order_items (
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 
 -- ============================================
--- 8. ПРОМОКОДЫ
+-- 8. ФАЙЛОВЫЕ ТОВАРЫ (для моментальной выдачи)
 -- ============================================
 
-CREATE TABLE promo_codes (
+CREATE TABLE product_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL,
-  discount_type TEXT NOT NULL CHECK (discount_type IN ('percent', 'fixed')),
-  discount_value DECIMAL(10, 2) NOT NULL CHECK (discount_value > 0),
-  max_uses INTEGER,
-  used_count INTEGER DEFAULT 0,
-  expires_at TIMESTAMPTZ,
-  is_active BOOLEAN DEFAULT TRUE,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+  key_value TEXT NOT NULL,
+  is_used BOOLEAN DEFAULT FALSE,
+  used_at TIMESTAMPTZ,
+  used_by UUID REFERENCES users(id),
+  order_id UUID REFERENCES orders(id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_promo_codes_code ON promo_codes(code);
-CREATE INDEX idx_promo_codes_active ON promo_codes(is_active);
+CREATE INDEX idx_product_keys_product ON product_keys(product_id);
+CREATE INDEX idx_product_keys_available ON product_keys(product_id, is_used) WHERE is_used = FALSE;
 
 -- ============================================
 -- 9. ТРАНЗАКЦИИ БАЛАНСА
