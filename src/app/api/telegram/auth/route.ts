@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
     const profile = await ensureTelegramUser(verified.user)
     const session = await issueSessionForEmail(profile.email)
     if (!session.ok) {
-      return NextResponse.json({ error: session.error }, { status: 500 })
+      // Детали ошибки (Supabase) — только в лог, клиенту — обобщённо.
+      console.error('[telegram/auth] issueSession:', session.error)
+      return NextResponse.json({ error: 'Не удалось выдать сессию' }, { status: 500 })
     }
     return NextResponse.json({
       success: true,

@@ -114,4 +114,23 @@ describe('POST /api/telegram/auth — Mini App авторизация (ТЗ §5.
     const res = await authPOST(req(URL, { initData: 'valid' }))
     expect(res.status).toBe(500)
   })
+
+  it('не утекает сырая ошибка Supabase в тело ответа (Блок 4 аудита)', async () => {
+    h.verifyInitData.mockReturnValue({ ok: true, user: { id: 1 } })
+    h.issueSessionForEmail.mockResolvedValue({ ok: false, error: 'pg://secret connection string' } as any)
+    const res = await authPOST(req(URL, { initData: 'valid' }))
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(JSON.stringify(body)).not.toContain('secret connection')
+  })
+
+  it('сессия выдаётся для email из ПРОВЕРЕННОГО initData, а не из тела запроса (анти-impersonation)', async () => {
+    h.verifyInitData.mockReturnValue({ ok: true, user: { id: 1 } })
+    // Атакующий подсовывает чужой email/telegram_id в тело — должен игнорироваться.
+    const res = await authPOST(req(URL, { initData: 'valid', email: 'victim@x', telegram_id: 999 }))
+    expect(res.status).toBe(200)
+    // ensureTelegramUser вызван с user из verifyInitData (id:1), email берётся из его профиля (tg1@x).
+    expect(h.ensureTelegramUser).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
+    expect(h.issueSessionForEmail).toHaveBeenCalledWith('tg1@x')
+  })
 })
