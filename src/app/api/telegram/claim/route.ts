@@ -3,8 +3,14 @@ import { createClient } from '@/lib/supabase/server'
 import { verifyTgClaimCode } from '@/lib/telegram/verify'
 import { linkTelegramToUser } from '@/lib/telegram/account'
 import { isConfigured } from '@/lib/telegram/config'
+import { rateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
+
+// Барьер от перебора кодов привязки: коды HMAC-подписаны (подделать нельзя), но ограничиваем
+// частоту попыток на аккаунт — на случай автоматизированного спама роута.
+const CLAIM_LIMIT = 20
+const CLAIM_WINDOW_MS = 60_000
 
 /**
  * POST /api/telegram/claim — привязать Telegram к текущему аккаунту по коду из бота.
@@ -23,6 +29,14 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+
+  const rl = rateLimit(`tg-claim:${user.id}`, CLAIM_LIMIT, CLAIM_WINDOW_MS)
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Слишком много попыток, попробуйте позже' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } }
+    )
+  }
 
   const body = await request.json().catch(() => null)
   const code: unknown = body?.code

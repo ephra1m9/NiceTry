@@ -3,8 +3,22 @@ import { verifyInitData } from '@/lib/telegram/verify'
 import { ensureTelegramUser } from '@/lib/telegram/account'
 import { issueSessionForEmail } from '@/lib/telegram/session'
 import { isConfigured } from '@/lib/telegram/config'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
+
+// Лимиты флуда: грубый барьер по IP (против спама невалидным initData) и точный
+// по проверенному telegram_id (против выжигания лимитов Supabase на генерацию сессий).
+const IP_LIMIT = 30 // запросов
+const ID_LIMIT = 10 // выдач сессии
+const WINDOW_MS = 60_000 // в минуту
+
+function tooMany(retryAfterSec: number) {
+  return NextResponse.json(
+    { error: 'Слишком много запросов, попробуйте позже' },
+    { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+  )
+}
 
 /**
  * POST /api/telegram/auth — авто-авторизация в Mini App.
@@ -20,6 +34,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Bot is not configured' }, { status: 503 })
   }
 
+  // Грубый барьер по IP — до любой работы (отбивает спам мусорным initData).
+  const ipRl = rateLimit(`tg-auth:ip:${clientIp(request.headers)}`, IP_LIMIT, WINDOW_MS)
+  if (!ipRl.ok) return tooMany(ipRl.retryAfterSec)
+
   const body = await request.json().catch(() => null)
   const initData: unknown = body?.initData
   if (typeof initData !== 'string' || !initData) {
@@ -31,6 +49,10 @@ export async function POST(request: NextRequest) {
     const status = verified.reason === 'expired' ? 401 : 403
     return NextResponse.json({ error: 'Подпись initData недействительна', reason: verified.reason }, { status })
   }
+
+  // Точный барьер по проверенному telegram_id — ограничивает частоту выдачи сессий/OTP.
+  const idRl = rateLimit(`tg-auth:id:${verified.user.id}`, ID_LIMIT, WINDOW_MS)
+  if (!idRl.ok) return tooMany(idRl.retryAfterSec)
 
   try {
     const profile = await ensureTelegramUser(verified.user)

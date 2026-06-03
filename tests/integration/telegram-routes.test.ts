@@ -20,6 +20,7 @@ vi.mock('@/lib/telegram/session', () => ({ issueSessionForEmail: h.issueSessionF
 import { POST as webhookPOST } from '@/app/api/telegram/webhook/route'
 import { POST as authPOST } from '@/app/api/telegram/auth/route'
 import { WEBHOOK_SECRET } from '@/lib/telegram/config'
+import { __resetRateLimit } from '@/lib/rate-limit'
 
 function req(url: string, body: unknown, headers: Record<string, string> = {}) {
   return new NextRequest(url, {
@@ -34,6 +35,7 @@ beforeEach(() => {
   h.verifyInitData.mockReset()
   h.issueSessionForEmail.mockClear()
   h.issueSessionForEmail.mockResolvedValue({ ok: true })
+  __resetRateLimit()
 })
 
 describe('POST /api/telegram/webhook — секрет и обработка (ТЗ §6, безопасность)', () => {
@@ -132,5 +134,18 @@ describe('POST /api/telegram/auth — Mini App авторизация (ТЗ §5.
     // ensureTelegramUser вызван с user из verifyInitData (id:1), email берётся из его профиля (tg1@x).
     expect(h.ensureTelegramUser).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
     expect(h.issueSessionForEmail).toHaveBeenCalledWith('tg1@x')
+  })
+
+  it('429 при флуде выдачи сессий по одному telegram_id (Блок 10 аудита)', async () => {
+    h.verifyInitData.mockReturnValue({ ok: true, user: { id: 777 } })
+    // ID_LIMIT=10 успешных, 11-й — 429 с Retry-After.
+    let last: Response = await authPOST(req(URL, { initData: 'valid' }))
+    for (let i = 0; i < 10; i++) {
+      last = await authPOST(req(URL, { initData: 'valid' }))
+    }
+    expect(last.status).toBe(429)
+    expect(last.headers.get('Retry-After')).toBeTruthy()
+    const body = await last.json()
+    expect(JSON.stringify(body)).not.toMatch(/secret|token|pg:\/\//i)
   })
 })
