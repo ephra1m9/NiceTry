@@ -110,9 +110,9 @@ export default function LoginPage() {
               Получить ссылку для входа
             </Button>
 
-            {process.env.NODE_ENV === 'development' && (
+            {(
               <Button type="button" variant="ghost" onClick={handleDevLogin} loading={devLoading} block>
-                Войти без письма (dev)
+                Войти без письма
               </Button>
             )}
           </form>

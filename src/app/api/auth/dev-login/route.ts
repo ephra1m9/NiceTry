@@ -9,10 +9,14 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 // одноразовый token_hash (generateLink почту НЕ шлёт и лимит НЕ трогает) и тут же подтверждает
 // его (verifyOtp), создавая сессию в cookies — пользователь сразу залогинен.
 //
-// Безопасность: доступен только когда NODE_ENV !== 'production'. В проде вернёт 403.
+// Безопасность: доступен всегда в dev-режиме. В production — только при ALLOW_DEV_LOGIN=true
+// (обход лимита писем Supabase на бесплатном тарифе; при появлении своего SMTP — убрать).
 // Для боевого входа используется обычный magic link (/api/auth/login) + свой SMTP.
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === 'production') {
+  const isProduction = process.env.NODE_ENV === 'production'
+  const devLoginAllowed = process.env.ALLOW_DEV_LOGIN === 'true'
+
+  if (isProduction && !devLoginAllowed) {
     return NextResponse.json({ error: 'Недоступно в production' }, { status: 403 })
   }
 
