@@ -33,9 +33,27 @@ export interface DesslyGame {
 
 export interface DesslyGiftRequest {
   gameId: string
-  /** Профиль/ссылка получателя в Steam. */
+  /**
+   * Ссылка-приглашение Steam получателя (формат https://s.team/p/...). Именно по ней Dessly
+   * отправляет гифт (см. флоу send-gift). Поле названо recipient для обратной совместимости.
+   */
   recipient: string
   referenceId: string
+  /** Регион аккаунта получателя (RU/CN/KR/ID/VN/IN/...). Опционально — зависит от издания. */
+  region?: string
+  /** Идентификатор издания игры (sub/edition), если у игры несколько изданий. */
+  edition?: string
+}
+
+/**
+ * Валидация ссылки-приглашения Steam: https://s.team/p/<code> (короткая) или
+ * https://steamcommunity.com/p/<code>. Используется фолбэк-экраном отправки игры (Блок B2)
+ * и перед боевым sendGift, чтобы не отправлять заведомо некорректную ссылку.
+ */
+export const STEAM_INVITE_RE = /^https:\/\/(s\.team\/p\/[A-Za-z0-9_-]+|steamcommunity\.com\/p\/[A-Za-z0-9_-]+)(\/[A-Za-z0-9_-]+)?\/?$/
+
+export function isSteamInviteUrl(url: string): boolean {
+  return STEAM_INVITE_RE.test((url || '').trim())
 }
 
 export interface DesslyGiftResponse {
@@ -152,12 +170,16 @@ export async function getGame(id: string): Promise<DesslyGame | null> {
 /** Отправка игры гифтом (POST /api/v1/steam/gift). */
 export async function sendGift(req: DesslyGiftRequest): Promise<DesslyGiftResponse> {
   if (isLiveMode()) {
+    // TODO: подтвердить точные имена полей по боевой доке Dessly при получении доступа
+    // (region/edition/sub_id могут называться иначе). Базовые app_id/steam invite/reference_id — по llms.txt.
     const data = await liveRequest<Record<string, unknown>>('/api/v1/steam/gift', {
       method: 'POST',
       body: {
         app_id: req.gameId,
-        recipient: req.recipient,
+        recipient: req.recipient, // Steam Invite URL
         reference_id: req.referenceId,
+        ...(req.region ? { region: req.region } : {}),
+        ...(req.edition ? { sub_id: req.edition } : {}),
       },
     })
     return {
