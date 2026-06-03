@@ -10,7 +10,7 @@ import {
   AppRouteError,
   AppRouteStatusCode,
 } from '@/lib/approute'
-import { sendGift, DesslyError } from '@/lib/dessly'
+import { sendGift, getTransactionStatus, isSteamInviteUrl, DesslyError } from '@/lib/dessly'
 import { notifyOrderDelivered } from '@/lib/telegram/notify'
 import { REFERRAL_PERCENTS } from '@/lib/constants'
 import {
@@ -380,11 +380,27 @@ async function deliverInstant(
     throw new AppRouteError('Voucher not available yet', AppRouteStatusCode.UPSTREAM_ERROR, 0, created.traceId)
   }
 
-  // Dessly: отправка игры гифтом (нужен получатель).
-  if (product.supplier === 'dessly' && product.supplier_id) {
-    const recipient = formData?.recipient || formData?.account_reference || ''
-    const res = await sendGift({ gameId: product.supplier_id, recipient, referenceId })
-    if (res.status === 'failed') throw new DesslyError(res.message || 'Gift failed', 502)
+  // Dessly: отправка игры гифтом по ссылке-приглашению Steam.
+  // ID игры у Dessly хранится в denomination_id (БД-каталог) / supplier_id (фолбэк-каталог).
+  const desslyGameId = product.supplier_id || product.denomination_id || product.supplier_service_id
+  if (product.supplier === 'dessly' && desslyGameId) {
+    const recipient = (formData?.recipient || formData?.account_reference || '').trim()
+    const region = formData?.region || undefined
+    const edition = formData?.edition || formData?.sub_id || undefined
+    // Валидация ссылки ДО обращения к поставщику: невалидный invite → провал → возврат на баланс.
+    if (!isSteamInviteUrl(recipient)) {
+      throw new DesslyError('Некорректная ссылка-приглашение Steam', 400)
+    }
+    let res = await sendGift({ gameId: desslyGameId, recipient, referenceId, region, edition })
+    // Отслеживание статуса: если гифт ещё в обработке — опрашиваем до терминального исхода.
+    let tries = 0
+    while (res.status === 'pending' && res.transactionId && tries < 10) {
+      tries += 1
+      res = await getTransactionStatus(res.transactionId)
+    }
+    if (res.status === 'failed' || res.status === 'pending') {
+      throw new DesslyError(res.message || 'Gift failed', 502)
+    }
     return [res.giftLink || `Заказ отправлен: ${res.transactionId}`]
   }
 

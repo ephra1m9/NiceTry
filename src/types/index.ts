@@ -39,6 +39,7 @@ export interface Product {
   is_active: boolean
   supplier: 'approute' | 'dessly'
   supplier_id?: string
+  supplier_service_id?: string
   denomination_id?: string
   image_url?: string
   min_amount?: number

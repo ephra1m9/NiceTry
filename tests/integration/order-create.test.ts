@@ -350,6 +350,79 @@ describe('Сбой выдачи у поставщика → возврат на 
   }, 60000)
 })
 
+describe('Dessly — отправка игры гифтом (Блок B3)', () => {
+  // Seed-хелпер: реальный dessly-товар в БД (как сидит seed.mjs: denomination_id = id игры).
+  async function seedDesslyProduct(): Promise<any> {
+    const gameId = `vt_game_${randomUUID().slice(0, 8)}`
+    const { data, error } = await retry(() =>
+      admin
+        .from('products')
+        .insert({
+          name: `VITEST Dessly game ${randomUUID().slice(0, 6)}`,
+          description: 'vitest',
+          type: 'instant',
+          category_id: instantProduct.category_id,
+          price: 1500,
+          stock: 50,
+          is_active: true,
+          supplier: 'dessly',
+          supplier_service_id: gameId,
+          denomination_id: gameId,
+        })
+        .select()
+        .single()
+    )
+    if (error || !data) throw new Error(`seed dessly product: ${error?.message}`)
+    createdProductIds.push(data.id)
+    return data
+  }
+
+  it('валидный Steam invite: гифт отправлен (мок), заказ delivered, voucher = giftLink', async () => {
+    const game = await seedDesslyProduct()
+    const user = await seedUser(5000, { statusId: zeroStatusId })
+    currentUser = user
+
+    const res = await ordersCreatePOST(
+      req({
+        items: [{ product_id: game.id, quantity: 1, form_data: { recipient: 'https://s.team/p/abcd-1234', region: 'RU' } }],
+        payment_method: 'balance',
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.order.status).toBe('delivered')
+    expect(body.order.delivered_items).toHaveLength(1)
+    // Мок sendGift возвращает giftLink — он и попадает в voucher_code.
+    expect(body.order.delivered_items[0].voucher_code).toContain('steampowered.com/gift')
+    expect(await getBalance(user.id)).toBe(5000 - 1500)
+  }, 60000)
+
+  it('некорректный invite: выдачи нет, заказ cancelled, баланс возвращён (refund)', async () => {
+    const game = await seedDesslyProduct()
+    const user = await seedUser(5000, { statusId: zeroStatusId })
+    currentUser = user
+
+    const res = await ordersCreatePOST(
+      req({
+        items: [{ product_id: game.id, quantity: 1, form_data: { recipient: 'https://example.com/not-an-invite' } }],
+        payment_method: 'balance',
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.order.status).toBe('cancelled')
+    expect(body.order.delivered_items).toHaveLength(0)
+    // Списали 1500 → вернули 1500.
+    expect(await getBalance(user.id)).toBe(5000)
+    const { data: txns } = await retry(() =>
+      admin.from('balance_transactions').select('*').eq('user_id', user.id)
+    )
+    expect(txns!.find((t) => t.type === 'refund')).toBeTruthy()
+    const { data: items } = await retry(() => admin.from('order_items').select('*').eq('order_id', body.order.id))
+    expect(items![0].delivery_status).toBe('failed')
+  }, 60000)
+})
+
 describe('Реферальные начисления + защита от самореферала', () => {
   it('начисляет бонус рефереру за заказ приглашённого', async () => {
     const referrer = await seedUser(0, { statusId: zeroStatusId })
