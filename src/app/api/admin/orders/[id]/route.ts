@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/admin'
+import { notifyOrderDelivered } from '@/lib/telegram/notify'
 
 // GET /api/admin/orders/[id] - получение деталей заказа
 export async function GET(
@@ -56,6 +57,45 @@ export async function PATCH(
     const supabase = guard.admin
 
     const body = await request.json()
+
+    // Ручной перевод в «выдан» (ТЗ §5.6/§5.8): уведомление шлём РОВНО при переходе в delivered.
+    // Атомарное условие .neq('status','delivered') гарантирует, что только один запрос реально
+    // переведёт заказ и отправит уведомление — повторные PATCH дублей не породят (идемпотентность).
+    if (body.status === 'delivered') {
+      const { data: flipped, error: flipErr } = await supabase
+        .from('orders')
+        .update({
+          status: 'delivered',
+          delivery_data: body.delivery_data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.id)
+        .neq('status', 'delivered')
+        .select()
+        .maybeSingle()
+
+      if (flipErr) return NextResponse.json({ error: flipErr.message }, { status: 500 })
+
+      if (flipped) {
+        // Переход состоялся — уведомляем покупателя (best-effort, ошибки гасятся внутри notify).
+        const { data: items } = await supabase
+          .from('order_items')
+          .select('product_name, voucher_code')
+          .eq('order_id', params.id)
+        if (flipped.user_id) {
+          await notifyOrderDelivered(
+            flipped.user_id,
+            { order_number: flipped.order_number },
+            (items || []) as Array<{ product_name: string; voucher_code?: string | null }>
+          )
+        }
+        return NextResponse.json({ order: flipped })
+      }
+
+      // Уже был delivered — возвращаем текущее состояние без повторного уведомления.
+      const { data: current } = await supabase.from('orders').select().eq('id', params.id).single()
+      return NextResponse.json({ order: current })
+    }
 
     const { data: order, error } = await supabase
       .from('orders')

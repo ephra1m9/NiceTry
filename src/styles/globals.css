@@ -1387,3 +1387,32 @@
 .legal-contact-card .lc-value a:hover {
   text-decoration: underline;
 }
+
+/* ===== Telegram Mini App (узкое мобильное окно) ===== */
+/* В Mini App Telegram сам рисует заголовок и кнопку меню (web_app), поэтому сайтовые
+   шапку и подвал прячем — остаётся чистая витрина без дублирующей навигации и без
+   горизонтального скролла. Класс tg-webapp выставляется в TelegramProvider. */
+html.tg-webapp .site-header,
+html.tg-webapp .site-footer {
+  display: none !important;
+}
+
+html.tg-webapp body {
+  /* Контент начинается сразу под чёлкой Telegram */
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Удобные тач-цели в Mini App: минимум 44px по высоте у интерактивных элементов */
+html.tg-webapp .btn,
+html.tg-webapp a.btn,
+html.tg-webapp .iconbtn,
+html.tg-webapp button {
+  min-height: 44px;
+}
+
+/* Гарантия отсутствия горизонтального скролла в узком окне */
+html.tg-webapp,
+html.tg-webapp body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}

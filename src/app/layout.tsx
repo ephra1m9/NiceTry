@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import '../styles/globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { CartProvider } from '@/hooks/useCart'
+import { TelegramProvider } from '@/hooks/useTelegram'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
@@ -20,15 +22,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
+      <head>
+        {/* Telegram WebApp SDK — нужен ДО гидратации, чтобы window.Telegram.WebApp был доступен. */}
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+      </head>
       <body className="font-sans text-ink bg-bg antialiased flex flex-col min-h-screen">
         <AuthProvider>
-          <CartProvider>
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </CartProvider>
+          <TelegramProvider>
+            <CartProvider>
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </CartProvider>
+          </TelegramProvider>
         </AuthProvider>
       </body>
     </html>

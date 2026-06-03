@@ -12,7 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:secure": "node scripts/apply-db-security.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "tg:setup": "node scripts/telegram-setup.mjs",
+    "tg:info": "node scripts/telegram-setup.mjs --info",
+    "tg:delete": "node scripts/telegram-setup.mjs --delete"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",

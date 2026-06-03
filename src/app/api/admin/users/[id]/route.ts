@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/admin'
+import { notifyBalanceTopup } from '@/lib/telegram/notify'
 
 // GET /api/admin/users/[id] - получение пользователя
 export async function GET(
@@ -127,6 +128,10 @@ export async function PATCH(
         type: 'admin',
         description: body.balance_reason,
       })
+      // Уведомление о пополнении (ТЗ §5.8) — только при положительной дельте. Best-effort.
+      if (balanceDiff > 0) {
+        await notifyBalanceTopup(params.id, balanceDiff, Number(updatedUser.balance))
+      }
     }
 
     return NextResponse.json({ user: updatedUser })

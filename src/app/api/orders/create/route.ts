@@ -10,6 +10,7 @@ import {
   AppRouteError,
 } from '@/lib/approute'
 import { sendGift, DesslyError } from '@/lib/dessly'
+import { notifyOrderDelivered } from '@/lib/telegram/notify'
 import { REFERRAL_PERCENTS } from '@/lib/constants'
 import {
   computeLinePrice,
@@ -262,7 +263,18 @@ export async function POST(request: NextRequest) {
       await creditReferral(profile.referred_by, authUser.id, order.id, orderNumber, lines)
     }
 
-    // 8) Промокод: увеличить счётчик использований.
+    // 8) Уведомление о выдаче (ТЗ §5.8) — только для фактически выданных моментальных позиций.
+    //    Best-effort: notify сам гасит ошибки (бот заблокирован/таймаут/нет привязки) и не валит заказ.
+    //    Идемпотентность: выдача в потоке создания происходит ровно один раз на заказ.
+    if (deliveredItems.length > 0) {
+      await notifyOrderDelivered(
+        authUser.id,
+        { order_number: orderNumber },
+        deliveredItems.map((d) => ({ product_name: d.product_name, voucher_code: d.voucher_code }))
+      )
+    }
+
+    // 9) Промокод: увеличить счётчик использований.
     if (promoCodeId) {
       const { data: pc } = await supabaseAdmin
         .from('promo_codes')

@@ -83,7 +83,7 @@ export default function Header() {
         </div>
       )}
 
-      <header className="site">
+      <header className="site site-header">
         <div className="container">
           <div className="header-main">
             <button

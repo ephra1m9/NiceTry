@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/admin'
+import { notifyRefund } from '@/lib/telegram/notify'
 
 // POST /api/admin/orders/[id]/refund - возврат средств
 export async function POST(
@@ -72,6 +73,12 @@ export async function POST(
       description: `Возврат за заказ #${order.order_number}`,
       order_id: order.id,
     })
+
+    // Уведомление о возврате (ТЗ §5.8). Идемпотентно: атомарный флип в cancelled выше
+    // выполняется ровно один раз, поэтому notify тоже сработает один раз.
+    if (order.user_id) {
+      await notifyRefund(order.user_id, { order_number: order.order_number }, Number(order.final_amount))
+    }
 
     return NextResponse.json({
       success: true,

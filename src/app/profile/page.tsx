@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
+import TelegramLinkCard from '@/components/TelegramLinkCard'
 
 function initials(email?: string): string {
   if (!email) return 'NT'
@@ -15,7 +16,7 @@ function initials(email?: string): string {
 
 export default function ProfilePage() {
   const { user: authUser, loading: authLoading } = useAuth()
-  const { user, loading: userLoading } = useUser()
+  const { user, loading: userLoading, refetch } = useUser()
   const [copied, setCopied] = useState(false)
 
   if (authLoading || userLoading) {
@@ -107,6 +108,13 @@ export default function ProfilePage() {
             </div>
           </dl>
         </Card>
+
+        {/* Привязка Telegram (единый аккаунт) */}
+        <TelegramLinkCard
+          telegramId={user.telegram_id}
+          telegramUsername={(user as { telegram_username?: string | null }).telegram_username}
+          onChanged={refetch}
+        />
 
         {/* Реферальная программа */}
         <Card className="md:col-span-2">

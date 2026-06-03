@@ -22,6 +22,18 @@ export function formatNumber(num: number): string {
   return new Intl.NumberFormat('ru-RU').format(num)
 }
 
+// Цена в рублях в формате ТЗ §6: разделитель тысяч — пробел, копейки только при наличии
+// дробной части («1 499 ₽», «1 499,50 ₽»). Неразрывный пробел перед ₽.
+export function formatRub(amount: number): string {
+  const value = Number(amount) || 0
+  const hasFraction = Math.round(value * 100) % 100 !== 0
+  const formatted = new Intl.NumberFormat('ru-RU', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(value)
+  return `${formatted} ₽`
+}
+
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str
   return str.slice(0, length) + '...'
