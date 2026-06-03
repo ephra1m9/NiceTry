@@ -150,6 +150,41 @@ describe('processUpdate — команды и меню (ТЗ §5.7)', () => {
       processUpdate({ message: { message_id: 7, chat: { id: 999 }, from: { id: 999 }, text: '/start' } })
     ).resolves.toBeUndefined()
   })
+
+  it('XSS в first_name экранируется в приветствии (Блок 9 аудита)', async () => {
+    await processUpdate({
+      message: {
+        message_id: 20,
+        chat: { id: 999 },
+        from: { id: 999, first_name: '<script>alert(1)</script>&<b>x' },
+        text: '/start',
+      },
+    })
+    const hello = sent.find((s) => s.text.includes('Привет'))!
+    expect(hello.text).not.toContain('<script>')
+    expect(hello.text).toContain('&lt;script&gt;')
+    expect(hello.text).toContain('&amp;')
+    expect(hello.text).toContain('&lt;b&gt;')
+  })
+
+  it('битый payload (message без chat) не роняет processUpdate (Блок 9 аудита)', async () => {
+    await expect(
+      processUpdate({ message: { message_id: 21, from: { id: 999 }, text: '/start' } as any })
+    ).resolves.toBeUndefined()
+  })
+
+  it('инъекция в deep-link param безопасна: невалидный токен → предупреждение, привязка не вызывается (Блок 9 аудита)', async () => {
+    await processUpdate({
+      message: {
+        message_id: 22,
+        chat: { id: 999 },
+        from: { id: 999 },
+        text: "/start '; DROP TABLE users;--",
+      },
+    })
+    expect(accountMock.linkTelegramToUser).not.toHaveBeenCalled()
+    expect(sent.some((s) => s.text.includes('недействительна') || s.text.includes('истекла'))).toBe(true)
+  })
 })
 
 describe('notify — доставка уведомлений (ТЗ §5.8)', () => {
