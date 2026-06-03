@@ -13,10 +13,7 @@ export async function GET(
 
     const { data: product, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        categories (name, slug)
-      `)
+      .select('*')
       .eq('id', params.id)
       .single()
 
@@ -28,7 +25,18 @@ export async function GET(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ product })
+    // Отдельный запрос категории — не полагаемся на FK-join (PostgREST schema cache)
+    let category: { name: string; slug: string } | null = null
+    if (product.category_id) {
+      const { data: cat } = await supabase
+        .from('categories')
+        .select('name, slug')
+        .eq('id', product.category_id)
+        .maybeSingle()
+      if (cat) category = cat
+    }
+
+    return NextResponse.json({ product: { ...product, categories: category } })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

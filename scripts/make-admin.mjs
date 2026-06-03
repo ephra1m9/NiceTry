@@ -1,109 +1,64 @@
-// Назначение администратора по email (для локальной разработки/онбординга).
-// Запуск:  node scripts/make-admin.mjs you@example.com
-//
-// Что делает (через SUPABASE_SERVICE_ROLE_KEY, в обход RLS):
-//   1) Создаёт пользователя в auth (email_confirm:true) — если уже есть, пропускает.
-//   2) Гарантирует строку в public.users (с уникальным referral_code, статус Bronze).
-//   3) Выставляет is_admin = true.
-// После этого войди на /auth/login кнопкой «Войти без письма (dev)» этим же email.
-
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+// Выдача админских прав пользователю через service role (в обход RLS).
+// Использование: node scripts/make-admin.mjs ssarycev37@gmail.com
 import { createClient } from '@supabase/supabase-js'
+import { readFileSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const root = join(__dirname, '..')
 
 function loadEnv() {
-  try {
-    const raw = readFileSync(join(root, '.env.local'), 'utf8')
-    for (const line of raw.split(/\r?\n/)) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
-      if (m && !(m[1] in process.env)) process.env[m[1]] = m[2]
-    }
-  } catch {
-    /* .env.local может отсутствовать — берём из process.env */
+  const envPath = resolve(__dirname, '..', '.env.local')
+  const text = readFileSync(envPath, 'utf-8')
+  const env = {}
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    env[trimmed.slice(0, eq)] = trimmed.slice(eq + 1)
   }
+  return env
 }
-loadEnv()
 
 const email = process.argv[2]
-if (!email || !email.includes('@')) {
-  console.error('Использование: node scripts/make-admin.mjs you@example.com')
+if (!email) {
+  console.error('Укажи email: node scripts/make-admin.mjs user@example.com')
   process.exit(1)
 }
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-if (!url || !serviceKey) {
-  console.error('Нет NEXT_PUBLIC_SUPABASE_URL или SUPABASE_SERVICE_ROLE_KEY в .env.local')
-  process.exit(1)
-}
+const env = loadEnv()
+const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
-const admin = createClient(url, serviceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
+const { data: users, error } = await supabase.auth.admin.listUsers()
+if (error) { console.error('listUsers error:', error); process.exit(1) }
 
-function generateReferralCode() {
-  return Math.random().toString(36).slice(2, 10).toUpperCase()
-}
+const target = users.users.find(u => u.email === email)
+if (!target) { console.error('Пользователь', email, 'не найден'); process.exit(1) }
 
-async function findAuthUserByEmail(targetEmail) {
-  for (let page = 1; page <= 50; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error) throw error
-    const found = data.users.find((u) => u.email?.toLowerCase() === targetEmail.toLowerCase())
-    if (found) return found
-    if (data.users.length < 1000) break
-  }
-  return null
-}
+console.log('Найден:', target.id, target.email)
 
-async function main() {
-  // 1) auth-пользователь
-  const { error: createErr } = await admin.auth.admin.createUser({ email, email_confirm: true })
-  if (createErr && !/registered|already/i.test(createErr.message)) throw createErr
-  console.log(createErr ? '• auth-пользователь уже существовал' : '• auth-пользователь создан')
+const { data: profile } = await supabase.from('users').select('*').eq('id', target.id).maybeSingle()
 
-  const authUser = await findAuthUserByEmail(email)
-  if (!authUser) throw new Error('Не нашёл auth-пользователя после создания')
-
-  // 2) строка в public.users
-  const { data: existing } = await admin
-    .from('users')
-    .select('id, is_admin')
-    .eq('id', authUser.id)
-    .maybeSingle()
-
-  if (existing) {
-    const { error } = await admin.from('users').update({ is_admin: true }).eq('id', authUser.id)
-    if (error) throw error
-    console.log('• профиль уже был — выставил is_admin = true')
+if (!profile) {
+  console.log('Профиля нет — создаём...')
+  const { error: insErr } = await supabase.from('users').insert({
+    id: target.id, email: target.email, is_admin: true, balance: 0,
+    referral_code: 'ADMIN' + Date.now().toString(36).toUpperCase(),
+  })
+  if (insErr) { console.error('insert error:', JSON.stringify(insErr)); process.exit(1) }
+  console.log('Создан с is_admin=true')
+} else {
+  console.log('Текущий: is_admin =', profile.is_admin, ', баланс =', profile.balance)
+  if (!profile.is_admin) {
+    const { error: updErr } = await supabase.from('users').update({ is_admin: true }).eq('id', target.id)
+    if (updErr) { console.error('update error:', JSON.stringify(updErr)); process.exit(1) }
+    console.log('Установлен is_admin = true')
   } else {
-    const { data: bronze } = await admin
-      .from('user_statuses')
-      .select('id')
-      .eq('name', 'Bronze')
-      .maybeSingle()
-
-    const { error } = await admin.from('users').insert({
-      id: authUser.id,
-      email: authUser.email,
-      referral_code: generateReferralCode(),
-      status_id: bronze?.id ?? null,
-      balance: 0,
-      is_admin: true,
-    })
-    if (error) throw error
-    console.log('• профиль создан с is_admin = true')
+    console.log('Уже админ.')
   }
-
-  console.log(`\n✅ Готово. ${email} теперь администратор.`)
-  console.log('Дальше: npm run dev → /auth/login → «Войти без письма (dev)» этим email → открой /admin')
 }
 
-main().catch((e) => {
-  console.error('❌ Ошибка:', e.message || e)
-  process.exit(1)
-})
+const { data: check } = await supabase.from('users').select('id, is_admin, balance').eq('id', target.id).single()
+console.log('Итог:', JSON.stringify(check))
+console.log('Готово.')
