@@ -45,6 +45,19 @@ describe('POST /api/telegram/webhook — секрет и обработка (Т�
     expect(h.processUpdate).not.toHaveBeenCalled()
   })
 
+  it('401 при отсутствии заголовка секрета', async () => {
+    const res = await webhookPOST(req(URL, { update_id: 1 }))
+    expect(res.status).toBe(401)
+    expect(h.processUpdate).not.toHaveBeenCalled()
+  })
+
+  it('401 при секрете-префиксе нужной длины (constant-time, без префиксного байпаса)', async () => {
+    const wrongSameLen = 'x'.repeat(WEBHOOK_SECRET.length)
+    const res = await webhookPOST(req(URL, { update_id: 1 }, { 'x-telegram-bot-api-secret-token': wrongSameLen }))
+    expect(res.status).toBe(401)
+    expect(h.processUpdate).not.toHaveBeenCalled()
+  })
+
   it('200 при верном секрете, апдейт уходит в обработку', async () => {
     const res = await webhookPOST(
       req(URL, { update_id: 2, message: { text: '/start' } }, { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET })

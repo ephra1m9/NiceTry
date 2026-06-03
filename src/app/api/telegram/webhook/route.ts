@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { WEBHOOK_SECRET, isConfigured } from '@/lib/telegram/config'
 import { processUpdate, type TgUpdate } from '@/lib/telegram/bot'
 
 export const dynamic = 'force-dynamic'
+
+/** Сравнение секрета вебхука за постоянное время (защита от тайминг-атаки на секрет). */
+function secretMatches(provided: string | null, expected: string): boolean {
+  if (!provided) return false
+  const a = Buffer.from(provided)
+  const b = Buffer.from(expected)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
 
 /**
  * POST /api/telegram/webhook
@@ -22,7 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   const secret = request.headers.get('x-telegram-bot-api-secret-token')
-  if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
+  if (WEBHOOK_SECRET && !secretMatches(secret, WEBHOOK_SECRET)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 401 })
   }
 
