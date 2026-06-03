@@ -1,9 +1,15 @@
 // Клиент Dessly API (поставщик отправки игр / гифтов в Steam).
-// Документация: https://desslyhub.readme.io/ (живая дока, сверено в Блоке DSL-0)
+// Документация: https://desslyhub.readme.io/ (reference) + БОЕВАЯ ПРОВЕРКА живого сервера (Блок DSL-3).
 //
-// РЕАЛЬНЫЙ контракт (НЕ старый /api/v1/steam/* из llms.txt-индекса):
+// ⚠️ ВАЖНО: публичная дока УСТАРЕЛА по части авторизации. Она утверждает, что ключ передаётся
+// заголовком `apikey: <key>`. Живой сервер https://desslyhub.com это ОТВЕРГАЕТ и требует
+// ПОДПИСАННЫЙ запрос (проверено последовательными 401):
+//   X-Api-Key:   <публичный ключ>           (32 hex-символа из .env)
+//   X-Timestamp: <unix-время>               (см. signRequest)
+//   X-Signature: <HMAC-подпись запроса>     (секрет + алгоритм НЕ задокументированы публично)
+//
+// РЕАЛЬНЫЙ контракт эндпоинтов (сверено по reference, совпало):
 //   База:    https://desslyhub.com
-//   Авторизация: заголовок  apikey: <key>   (НЕ Bearer)
 //   GET  /api/v1/service/steamgift/games                 — список игр { games: [{ name, appid }] }
 //   GET  /api/v1/service/steamgift/games/{app_id}        — издания/регионы игры
 //        → { game: [{ edition, package_id, regions_info: [{ region, discount, price, price_original }] }] }
@@ -12,17 +18,19 @@
 //   GET  /api/v1/merchants/transaction/{id}/status       — статус транзакции { status } | { error_code }
 //   GET  /api/v1/merchants/balance                       — баланс мерчанта { balance: "1.0000" }
 //
-// ВАЖНО: Dessly отдаёт ошибки В ТЕЛЕ как { error_code: -N } даже при HTTP 200 (см. liveRequest).
+// Dessly отдаёт ошибки В ТЕЛЕ как { error_code: -N } даже при HTTP 200 (см. liveRequest).
 // Статусы: success | pending | failed | cancelled (failed/cancelled → деньги возвращены поставщиком).
 //
-// Режимы: если задан DESSLY_API_KEY — боевой режим (apikey-заголовок), иначе мок из catalog.json.
-// Форма публичных ответов сохраняется при переключении мок↔бой.
+// Режимы: боевой — только если заданы И DESSLY_API_KEY, И DESSLY_API_SECRET (нужен для подписи);
+// иначе мок из catalog.json. Это fail-safe: с одним ключом (без секрета) клиент НЕ бьёт боевыми
+// 401 по покупателям, а отдаёт каталог-фолбэк. Форма публичных ответов одинакова в обоих режимах.
 
+import { createHmac } from 'crypto'
 import catalog from '@/data/catalog.json'
 
 const DEFAULT_BASE_URL = 'https://desslyhub.com'
 
-const PLACEHOLDER_VALUES = new Set(['', 'your_dessly_api_key', 'TODO', 'changeme'])
+const PLACEHOLDER_VALUES = new Set(['', 'your_dessly_api_key', 'your_dessly_api_secret', 'TODO', 'changeme'])
 
 // ============================================================
 // Публичные типы
@@ -95,14 +103,27 @@ function baseUrl(): string {
 function apiKey(): string {
   return (process.env.DESSLY_API_KEY || '').trim()
 }
+function apiSecret(): string {
+  return (process.env.DESSLY_API_SECRET || '').trim()
+}
 
-/** Боевой режим включён, только если задан валидный (не плейсхолдерный) ключ. */
+/**
+ * Боевой режим включён, только если заданы валидные (не плейсхолдерные) КЛЮЧ И СЕКРЕТ.
+ * Секрет обязателен: живой Dessly требует подпись X-Signature (Блок DSL-3). Без секрета остаёмся
+ * в мок-режиме — иначе боевые запросы вернут 401 «invalid signature» прямо покупателям.
+ */
 export function isLiveMode(): boolean {
-  // Форс-мок: герметичность тестов/стейджа даже при реальном ключе в окружении.
+  // Форс-мок: герметичность тестов/стейджа даже при реальных ключах в окружении.
   // Боевые HTTP-пути покрываются отдельно стабом global.fetch.
   if (process.env.NICETRY_FORCE_SUPPLIER_MOCK === '1') return false
   const key = apiKey()
-  return !PLACEHOLDER_VALUES.has(key) && key.length > 0
+  const secret = apiSecret()
+  return (
+    key.length > 0 &&
+    !PLACEHOLDER_VALUES.has(key) &&
+    secret.length > 0 &&
+    !PLACEHOLDER_VALUES.has(secret)
+  )
 }
 
 // ============================================================
@@ -156,28 +177,44 @@ export class DesslyError extends Error {
 }
 
 // ============================================================
-// Низкоуровневый HTTP
+// Низкоуровневый HTTP (подписанные запросы)
 // ============================================================
+
+/**
+ * Подпись запроса Dessly (X-Signature).
+ *
+ * ⚠️ КАНОНИЧЕСКАЯ СТРОКА НЕ ПОДТВЕРЖДЕНА: публичная дока не описывает схему подписи, а перебор
+ * стандартных вариантов против живого сервера дал «invalid signature» (Блок DSL-3) — почти
+ * наверняка нужен ОТДЕЛЬНЫЙ секрет подписи + точный формат от Dessly. Это ЕДИНСТВЕННОЕ место,
+ * которое нужно поправить, когда владелец предоставит спецификацию (см. WORKLOG DSL-3).
+ * Текущая формула — наиболее распространённый best-guess: HMAC-SHA256(secret, METHOD+path+timestamp+body) → hex.
+ */
+function signRequest(method: string, path: string, timestamp: string, body: string): string {
+  const canonical = `${method.toUpperCase()}${path}${timestamp}${body}`
+  return createHmac('sha256', apiSecret()).update(canonical).digest('hex')
+}
 
 async function liveRequest<T>(
   path: string,
   opts: { method?: 'GET' | 'POST' | 'PUT'; body?: unknown } = {}
 ): Promise<T> {
   const method = opts.method || 'GET'
-  const headers: Record<string, string> = {
-    // Реальная авторизация Dessly — заголовок apikey (НЕ Authorization: Bearer).
-    apikey: apiKey(),
-    Accept: 'application/json',
-  }
-  let body: string | undefined
+  let body = ''
+  const headers: Record<string, string> = { Accept: 'application/json' }
   if (opts.body !== undefined && method !== 'GET') {
     headers['Content-Type'] = 'application/json'
     body = JSON.stringify(opts.body)
   }
+  // Подписанная авторизация Dessly: X-Api-Key + X-Timestamp + X-Signature (имена подтверждены
+  // ответами живого сервера; см. WORKLOG DSL-3). НЕ заголовок `apikey` и НЕ Authorization: Bearer.
+  const timestamp = Math.floor(Date.now() / 1000).toString()
+  headers['X-Api-Key'] = apiKey()
+  headers['X-Timestamp'] = timestamp
+  headers['X-Signature'] = signRequest(method, path, timestamp, body)
 
   let res: Response
   try {
-    res = await fetch(baseUrl() + path, { method, headers, body, cache: 'no-store' })
+    res = await fetch(baseUrl() + path, { method, headers, body: body || undefined, cache: 'no-store' })
   } catch (e) {
     throw new DesslyError(`Network error calling Dessly: ${(e as Error).message}`, 0)
   }

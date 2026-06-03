@@ -23,12 +23,14 @@ import {
 const orig = {
   mock: process.env.NICETRY_FORCE_SUPPLIER_MOCK,
   key: process.env.DESSLY_API_KEY,
+  secret: process.env.DESSLY_API_SECRET,
   base: process.env.DESSLY_BASE_URL,
 }
 
 beforeEach(() => {
   process.env.NICETRY_FORCE_SUPPLIER_MOCK = '0' // снимаем форс-мок → боевой путь
   process.env.DESSLY_API_KEY = 'test-dessly-key'
+  process.env.DESSLY_API_SECRET = 'test-dessly-secret' // боевой режим требует И ключ, И секрет (DSL-3)
   delete process.env.DESSLY_BASE_URL // дефолт https://desslyhub.com
 })
 
@@ -37,6 +39,8 @@ afterEach(() => {
   else process.env.NICETRY_FORCE_SUPPLIER_MOCK = orig.mock
   if (orig.key === undefined) delete process.env.DESSLY_API_KEY
   else process.env.DESSLY_API_KEY = orig.key
+  if (orig.secret === undefined) delete process.env.DESSLY_API_SECRET
+  else process.env.DESSLY_API_SECRET = orig.secret
   if (orig.base === undefined) delete process.env.DESSLY_BASE_URL
   else process.env.DESSLY_BASE_URL = orig.base
   vi.unstubAllGlobals()
@@ -66,8 +70,11 @@ describe('Dessly: боевой режим — реальный контракт 
     expect(games[0].name).toBe('Cyberpunk 2077')
     const [url, opts] = fn.mock.calls[0] as unknown as [string, any]
     expect(url).toBe('https://desslyhub.com/api/v1/service/steamgift/games')
-    // Авторизация — apikey, НЕ Authorization: Bearer.
-    expect(opts.headers.apikey).toBe('test-dessly-key')
+    // Подписанная авторизация: X-Api-Key + X-Timestamp + X-Signature (НЕ apikey, НЕ Bearer).
+    expect(opts.headers['X-Api-Key']).toBe('test-dessly-key')
+    expect(opts.headers['X-Timestamp']).toMatch(/^\d+$/)
+    expect(opts.headers['X-Signature']).toMatch(/^[0-9a-f]{64}$/) // HMAC-SHA256 hex
+    expect(opts.headers.apikey).toBeUndefined()
     expect(opts.headers.Authorization).toBeUndefined()
   })
 
@@ -133,7 +140,8 @@ describe('Dessly: боевой режим — реальный контракт 
     const [url, opts] = fn.mock.calls[0] as unknown as [string, any]
     expect(url).toBe('https://desslyhub.com/api/v1/service/steamgift/sendgames')
     expect(opts.method).toBe('POST')
-    expect(opts.headers.apikey).toBe('test-dessly-key')
+    expect(opts.headers['X-Api-Key']).toBe('test-dessly-key')
+    expect(opts.headers['X-Signature']).toMatch(/^[0-9a-f]{64}$/)
     expect(opts.headers['Content-Type']).toBe('application/json')
     const body = JSON.parse(opts.body)
     expect(body).toEqual({
