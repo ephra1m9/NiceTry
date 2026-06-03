@@ -41,6 +41,7 @@ export default function HomePage() {
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [banners, setBanners] = useState<Array<{ id: string; title: string; image_url: string; link_url?: string }>>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,6 +57,13 @@ export default function HomePage() {
       .then((data) => setProducts(data.products || []))
       .catch((err) => console.error('Failed to load products:', err))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/banners')
+      .then(res => res.json())
+      .then(data => setBanners(data.banners || []))
+      .catch(() => {})
   }, [])
 
   // Кол-во товаров по категории (из загруженного списка)
@@ -87,41 +95,57 @@ export default function HomePage() {
 
   return (
     <div className="container py-8">
-      {/* Промо-баннеры */}
-      <div className="promo-grid">
-        <div className="promo main">
-          <div className="deco" />
-          <span
-            className="badge"
-            style={{
-              background: 'rgba(255,255,255,.15)',
-              color: '#cfe7fb',
-              width: 'max-content',
-              marginBottom: 10,
-            }}
-          >
-            Цифровые товары · выдача за секунды
-          </span>
-          <h2>Пополни Steam и купи игровую валюту без комиссий</h2>
-          <p>Мгновенная выдача ключей, честный курс и поддержка 24/7. Более 180 000 выполненных заказов.</p>
-          <Link className="btn btn-primary btn-lg" href="/catalog">
-            Перейти в каталог
-          </Link>
+      {/* Промо-баннеры: динамические (из БД) или статический фолбэк */}
+      {banners.length > 0 ? (
+        <div className="promo-carousel" style={{ display: 'flex', gap: 16, overflowX: 'auto', scrollSnapType: 'x mandatory', marginBottom: 30, paddingBottom: 8 }}>
+          {banners.map(b => {
+            const inner = (
+              <div key={b.id} className="promo main" style={{ minWidth: 'min(85vw, 700px)', scrollSnapAlign: 'start', backgroundImage: `url(${b.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,30,60,.92) 40%, transparent)', borderRadius: 'inherit' }} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <h2>{b.title}</h2>
+                </div>
+              </div>
+            )
+            return b.link_url ? <a key={b.id} href={b.link_url} style={{ textDecoration: 'none' }}>{inner}</a> : inner
+          })}
         </div>
-        <div className="promo side">
-          <span className="tag">
-            <svg className="ic ic-sm" viewBox="0 0 24 24">
-              <path d="M21 4L3 11l5 2 2 6 3-4 5 4z" />
-            </svg>
-            TELEGRAM-КАНАЛ
-          </span>
-          <h3>Розыгрыши и промокоды до –20%</h3>
-          <p style={{ maxWidth: '100%' }}>Первыми узнавайте о скидках и новых позициях.</p>
-          <a className="btn btn-secondary" href="#">
-            Подписаться
-          </a>
+      ) : (
+        <div className="promo-grid">
+          <div className="promo main">
+            <div className="deco" />
+            <span
+              className="badge"
+              style={{
+                background: 'rgba(255,255,255,.15)',
+                color: '#cfe7fb',
+                width: 'max-content',
+                marginBottom: 10,
+              }}
+            >
+              Цифровые товары · выдача за секунды
+            </span>
+            <h2>Пополни Steam и купи игровую валюту без комиссий</h2>
+            <p>Мгновенная выдача ключей, честный курс и поддержка 24/7. Более 180 000 выполненных заказов.</p>
+            <Link className="btn btn-primary btn-lg" href="/catalog">
+              Перейти в каталог
+            </Link>
+          </div>
+          <div className="promo side">
+            <span className="tag">
+              <svg className="ic ic-sm" viewBox="0 0 24 24">
+                <path d="M21 4L3 11l5 2 2 6 3-4 5 4z" />
+              </svg>
+              TELEGRAM-КАНАЛ
+            </span>
+            <h3>Розыгрыши и промокоды до –20%</h3>
+            <p style={{ maxWidth: '100%' }}>Первыми узнавайте о скидках и новых позициях.</p>
+            <a className="btn btn-secondary" href="#">
+              Подписаться
+            </a>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Плитки категорий */}
       {categories.length > 0 && (

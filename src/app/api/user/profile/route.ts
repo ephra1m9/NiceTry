@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 // Генерация уникального реферального кода (8 символов A-Z0-9)
 function generateReferralCode(): string {
@@ -12,12 +12,63 @@ function generateReferralCode(): string {
   return code
 }
 
+/** Находит ID реферера по реферальному коду из cookie. */
+async function resolveReferrer(refCode: string): Promise<string | null> {
+  if (!refCode || refCode.length < 4) return null
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('referral_code', refCode.toUpperCase())
+    .maybeSingle()
+  return data?.id ?? null
+}
+
+/** Записывает UTM-клик для пользователя (если были UTM-метки в cookie). */
+async function recordUtmClick(userId: string, utmRaw: string | undefined) {
+  if (!utmRaw) return
+  try {
+    const utm = JSON.parse(utmRaw)
+    // Находим или создаём UTM-кампанию
+    const { data: existing } = await supabaseAdmin
+      .from('utm_campaigns')
+      .select('id')
+      .eq('utm_source', utm.utm_source || '')
+      .eq('utm_medium', utm.utm_medium || '')
+      .eq('utm_campaign', utm.utm_campaign || '')
+      .maybeSingle()
+    let campaignId = existing?.id
+    if (!campaignId) {
+      const { data: created } = await supabaseAdmin
+        .from('utm_campaigns')
+        .insert({
+          utm_source: utm.utm_source || '',
+          utm_medium: utm.utm_medium || '',
+          utm_campaign: utm.utm_campaign || '',
+          utm_term: utm.utm_term || null,
+          utm_content: utm.utm_content || null,
+        })
+        .select('id')
+        .single()
+      campaignId = created?.id
+    }
+    if (campaignId) {
+      await supabaseAdmin.from('utm_clicks').insert({
+        campaign_id: campaignId,
+        user_id: userId,
+        landing_page: '/',
+      })
+    }
+  } catch {
+    // UTM — не критично, молча пропускаем.
+  }
+}
+
 // GET /api/user/profile - получить (или создать при первом входе) профиль текущего пользователя.
 //
 // Аутентификация — по сессии пользователя; чтение/создание профиля — через service-role
 // (supabaseAdmin), чтобы не зависеть от наличия RLS-политик users_select_own / users_insert_self.
 // Иначе при невыставленных политиках новый пользователь не смог бы создать профиль (RLS-deny).
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const {
@@ -51,6 +102,11 @@ export async function GET() {
       .eq('name', 'Bronze')
       .maybeSingle()
 
+    // Атрибуция: читаем реферальный код и UTM из cookies (ставит middleware).
+    const refCookie = request.cookies.get('nicetry_ref')?.value
+    const utmCookie = request.cookies.get('nicetry_utm')?.value
+    const referredBy = refCookie ? await resolveReferrer(refCookie) : null
+
     const { data: newProfile, error: createError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -59,6 +115,7 @@ export async function GET() {
         referral_code: generateReferralCode(),
         status_id: bronzeStatus?.id ?? null,
         balance: 0,
+        referred_by: referredBy,
       })
       .select(`*, status:user_statuses(name, discount_percent)`)
       .single()
@@ -67,6 +124,9 @@ export async function GET() {
       console.error('Create profile error:', createError)
       return NextResponse.json({ error: 'Ошибка создания профиля' }, { status: 500 })
     }
+
+    // Записать UTM-клик (после создания профиля, чтобы была ссылка на user_id).
+    await recordUtmClick(newProfile.id, utmCookie)
 
     return NextResponse.json(newProfile)
   } catch (error) {

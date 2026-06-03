@@ -1,6 +1,10 @@
-// Middleware для защиты роутов
+// Middleware: защита роутов, трекинг рефералов и UTM-меток.
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+
+const REF_COOKIE = 'nicetry_ref'
+const UTM_COOKIE = 'nicetry_utm'
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 // 30 дней
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -8,6 +12,23 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   })
+
+  // ——— Трекинг рефералов и UTM (до аутентификации, лёгкий) ———
+  const url = request.nextUrl
+  const ref = url.searchParams.get('ref')
+  const utmSource = url.searchParams.get('utm_source')
+
+  if (ref) {
+    response.cookies.set(REF_COOKIE, ref, { maxAge: COOKIE_MAX_AGE, httpOnly: false, sameSite: 'lax', path: '/' })
+  }
+  if (utmSource) {
+    const utm: Record<string, string> = {}
+    for (const p of ['utm_source','utm_medium','utm_campaign','utm_term','utm_content']) {
+      const v = url.searchParams.get(p)
+      if (v) utm[p] = v
+    }
+    response.cookies.set(UTM_COOKIE, JSON.stringify(utm), { maxAge: COOKIE_MAX_AGE, httpOnly: false, sameSite: 'lax', path: '/' })
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
