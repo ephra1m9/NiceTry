@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { useCart } from '@/hooks/useCart'
+import { useTelegram } from '@/hooks/useTelegram'
 import { LEGAL_LINKS } from '@/components/Footer'
 
 /**
@@ -37,12 +38,15 @@ export default function Header() {
   const { user: authUser, signOut } = useAuth()
   const { user } = useUser()
   const { totalItems } = useCart()
+  const { isTelegram } = useTelegram()
   const [topbar, setTopbar] = useState(true)
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    setSearchOpen(false)
     router.push(search.trim() ? `/catalog?search=${encodeURIComponent(search.trim())}` : '/catalog')
   }
 
@@ -65,6 +69,44 @@ export default function Header() {
 
   return (
     <>
+      {/* Шапка Telegram Mini App: сайтовая шапка в Mini App скрыта (CSS .site-header),
+          поэтому рисуем отдельную компактную — логотип, поиск и доступ к меню/категориям.
+          Учитываем safe-area сверху (чёлка Telegram). Видна в Mini App.
+          На обычном узком экране иконка-поиска есть в header-actions — дублировать не нужно. */}
+      {isTelegram && (
+        <div className="tg-header">
+          <button
+            className="tg-header-menu"
+            aria-label="Меню"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+          >
+            <svg className="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+          <Link className="tg-header-logo" href="/" aria-label="NiceTry">
+            <svg viewBox="0 0 250 56" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="42" fontFamily="Arial" fontWeight="900" fontSize="46" fill="#1C8CE3">N</text>
+              <text x="30" y="42" fontFamily="Arial" fontWeight="900" fontSize="46" fill="#0F1E2E">T</text>
+              <text x="72" y="31" fontFamily="'Segoe Script','Brush Script MT',cursive" fontStyle="italic" fontSize="31" fill="#1C8CE3">Nice</text>
+              <text x="118" y="50" fontFamily="'Segoe Script','Brush Script MT',cursive" fontStyle="italic" fontSize="31" fill="#0F1E2E">try</text>
+            </svg>
+          </Link>
+          <Link className="tg-header-acct" href="/profile" aria-label="Профиль">
+            <span className="av">{authUser ? initials(authUser.email ?? user?.email) : 'NT'}</span>
+          </Link>
+          <form className="tg-header-search" onSubmit={submitSearch} role="search">
+            <svg className="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2" /></svg>
+            <input
+              type="text"
+              aria-label="Поиск по каталогу"
+              placeholder="Поиск: Steam, PUBG, V-Bucks…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </form>
+        </div>
+      )}
+
       {/* Верхняя промо-полоса */}
       {topbar && (
         <div className="topbar">
@@ -106,8 +148,8 @@ export default function Header() {
               </svg>
             </Link>
 
-            {/* Поиск */}
-            <form className="search" onSubmit={submitSearch} role="search">
+            {/* Поиск (десктоп: всегда виден; мобильный: показывается по клику на иконку-лупу) */}
+            <form className={`search ${searchOpen ? 'search--open' : ''}`.trim()} onSubmit={submitSearch} role="search">
               <select className="cat" aria-label="Раздел" defaultValue="">
                 <option value="">Все разделы</option>
                 <option>Игровая валюта</option>
@@ -119,7 +161,7 @@ export default function Header() {
               <input
                 type="text"
                 aria-label="Поиск по каталогу"
-                placeholder="Поиск: Steam, PUBG Mobile, V-Bucks, Roblox…"
+                placeholder="Поиск: Steam, PUBG, V-Bucks…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -133,6 +175,18 @@ export default function Header() {
 
             {/* Действия */}
             <div className="header-actions">
+              {/* Иконка поиска на мобильных — раскрывает строку поиска */}
+              <button
+                className="iconbtn search-toggle-btn"
+                aria-label="Поиск"
+                onClick={() => setSearchOpen((v) => !v)}
+                type="button"
+              >
+                <svg className="ic" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.2-3.2" />
+                </svg>
+              </button>
               {authUser && (
                 <Link className="balance-chip" href="/profile" title="Баланс">
                   <svg className="ic" viewBox="0 0 24 24">

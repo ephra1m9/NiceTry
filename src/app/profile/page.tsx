@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
 import TelegramLinkCard from '@/components/TelegramLinkCard'
+import OrdersSection from '@/components/OrdersSection'
 
 function initials(email?: string): string {
   if (!email) return 'NT'
@@ -139,6 +140,9 @@ export default function ProfilePage() {
             </Button>
           </div>
         </Card>
+
+        {/* Заказы */}
+        <OrdersSection />
       </div>
     </div>
   )

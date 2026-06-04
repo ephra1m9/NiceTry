@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { buildCatalogProducts } from '@/lib/catalog'
+import { buildCatalogProducts, buildCategories, priceRub } from '@/lib/catalog'
 import {
   createShopOrder,
   waitForOrder,
@@ -36,12 +36,31 @@ import type { Product } from '@/types'
  * платёжной системы — такие методы оплаты возвращают 501. Оплата с внутреннего баланса
  * (Контур B — исполнение через поставщика) работает полностью.
  */
+
+// Выдача гифта Dessly опрашивает статус с паузами (до ~15с). Поднимаем лимит выполнения
+// функции, чтобы поллинг успевал завершиться до таймаута платформы.
+export const maxDuration = 60
+
 interface IncomingItem {
   product_id: string
   quantity?: number
   custom_amount?: number
   form_data?: Record<string, string>
 }
+
+/**
+ * Поставщик ПРИНЯЛ заказ, но выдача ещё не завершена (Dessly: paid/executing/pending).
+ * Это не провал — деньги у поставщика не возвращаются, позиция остаётся «в обработке».
+ * Несёт transactionId, чтобы записать его в заказ для последующего опроса/сверки.
+ */
+class DeliveryPendingError extends Error {
+  constructor(public transactionId: string) {
+    super('delivery_pending')
+    this.name = 'DeliveryPendingError'
+  }
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export async function POST(request: NextRequest) {
   try {
@@ -121,7 +140,21 @@ export async function POST(request: NextRequest) {
       if (!priced.ok) {
         return NextResponse.json({ error: priced.error }, { status: 400 })
       }
-      lines.push({ product, quantity: qty.quantity, linePrice: priced.linePrice, formData: item.form_data })
+      let linePrice = priced.linePrice
+
+      // Dessly-гифты: живой каталог игр НЕ отдаёт цену (она зависит от издания/региона),
+      // поэтому product.price = 0 и computeLinePrice вернёт 0. Резолвим реальную цену в USD
+      // по app_id + регион + издание и переводим в ₽ по курсу/наценке категории dessly-games.
+      // Делаем это на сервере (клиенту нельзя доверять сумму) ДО списания баланса.
+      if (product.supplier === 'dessly' && linePrice <= 0) {
+        const resolved = await resolveDesslyLinePrice(product, item.form_data)
+        if (!resolved.ok) {
+          return NextResponse.json({ error: resolved.error }, { status: 400 })
+        }
+        linePrice = resolved.priceRub * qty.quantity
+      }
+
+      lines.push({ product, quantity: qty.quantity, linePrice, formData: item.form_data })
     }
 
     const totalAmount = lines.reduce((s, l) => s + l.linePrice, 0)
@@ -242,11 +275,20 @@ export async function POST(request: NextRequest) {
             failedLineTotal += line.linePrice
           }
         } catch (e) {
-          allInstantDelivered = false
-          deliveryStatus = 'failed'
-          failedLineTotal += line.linePrice
-          if (e instanceof AppRouteError) traceId = e.traceId || traceId
-          console.error('[orders] delivery failed:', e instanceof Error ? e.message : e)
+          if (e instanceof DeliveryPendingError) {
+            // Поставщик принял заказ, выдача ещё идёт — НЕ провал, возврат не делаем.
+            // Позиция остаётся pending; заказ останется в работе (paid), деньги списаны.
+            allInstantDelivered = false
+            deliveryStatus = 'pending'
+            pendingCount += 1
+            traceId = e.transactionId || traceId
+          } else {
+            allInstantDelivered = false
+            deliveryStatus = 'failed'
+            failedLineTotal += line.linePrice
+            if (e instanceof AppRouteError) traceId = e.traceId || traceId
+            console.error('[orders] delivery failed:', e instanceof Error ? e.message : e)
+          }
         }
       } else {
         // topup/manual — обрабатывает менеджер/асинхронный поток (ожидаемо pending, не провал).
@@ -357,6 +399,53 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * Реальная цена Dessly-гифта в ₽ для строки заказа.
+ * Живой каталог игр не несёт цену — резолвим её по app_id + регион + издание (USD),
+ * затем переводим в ₽ по курсу/наценке категории dessly-games (как в каталоге).
+ * Курс/наценку берём из БД (admin-editable), с фолбэком на конфиг каталога.
+ */
+async function resolveDesslyLinePrice(
+  product: Product,
+  formData?: Record<string, string>
+): Promise<{ ok: true; priceRub: number } | { ok: false; error: string }> {
+  const gameId = product.supplier_id || product.denomination_id || product.supplier_service_id
+  if (!gameId) return { ok: false, error: 'Не удалось определить игру для расчёта цены' }
+
+  const region = (formData?.region || 'RU').toUpperCase()
+  const editionName = formData?.edition || undefined
+
+  let pkg: Awaited<ReturnType<typeof resolvePackage>>
+  try {
+    pkg = await resolvePackage(gameId, region, editionName)
+  } catch (e) {
+    console.error('[orders] resolveDesslyLinePrice failed:', e instanceof Error ? e.message : e)
+    return { ok: false, error: 'Не удалось получить цену издания. Попробуйте ещё раз.' }
+  }
+  if (!pkg || !(pkg.price > 0)) {
+    return { ok: false, error: `Издание/регион ${region} недоступны для этой игры` }
+  }
+
+  // Курс и наценка категории dessly-games: из БД (актуальные правки админа), фолбэк — конфиг.
+  let rate = 0
+  let markup = 0
+  const { data: cat } = await supabaseAdmin
+    .from('categories')
+    .select('usd_to_rub_rate, markup_percent')
+    .eq('slug', 'dessly-games')
+    .maybeSingle()
+  if (cat && Number(cat.usd_to_rub_rate) > 0) {
+    rate = Number(cat.usd_to_rub_rate)
+    markup = Number(cat.markup_percent || 0)
+  } else {
+    const fallback = buildCategories().find((c) => c.slug === 'dessly-games')
+    rate = fallback?.usd_to_rub_rate ?? 82
+    markup = fallback?.markup_percent ?? 18
+  }
+
+  return { ok: true, priceRub: priceRub(pkg.price, rate, markup) }
+}
+
 /** Выдача моментального товара: AppRoute (shop), Dessly (gift) или локальные ключи из файла. */
 async function deliverInstant(
   product: Product,
@@ -404,16 +493,29 @@ async function deliverInstant(
     }
 
     let res = await sendGift({ inviteUrl, packageId, region, reference: referenceId })
-    // Отслеживание статуса: если гифт ещё в обработке — опрашиваем до терминального исхода.
+    const transactionId = res.transactionId
+    // Отслеживание статуса: если гифт ещё в обработке — опрашиваем С ПАУЗОЙ до терминального
+    // исхода. Без паузы 10 опросов укладывались в <1с, статус оставался pending → заказ ложно
+    // помечался failed, хотя Dessly доводил выдачу через несколько секунд.
     let tries = 0
-    while (res.status === 'pending' && res.transactionId && tries < 10) {
+    while (res.status === 'pending' && transactionId && tries < 6) {
       tries += 1
-      res = await getTransactionStatus(res.transactionId)
+      await sleep(2500)
+      res = await getTransactionStatus(transactionId)
     }
-    if (res.status === 'failed' || res.status === 'pending') {
+    if (res.status === 'failed') {
       throw new DesslyError(res.message || 'Отправка гифта не удалась', 502, res.errorCode)
     }
-    return [res.giftLink || `Гифт отправлен: транзакция ${res.transactionId}`]
+    if (res.status === 'pending') {
+      // Dessly ПРИНЯЛ заказ (есть order_id), но выдача ещё идёт. Это НЕ провал: деньги у
+      // поставщика не возвращаются, поэтому и покупателю возврат делать нельзя. Сигналим
+      // «в обработке» — позиция станет pending, заказ останется в работе (paid).
+      if (!transactionId) {
+        throw new DesslyError(res.message || 'Поставщик не принял заказ', 502, res.errorCode)
+      }
+      throw new DeliveryPendingError(transactionId)
+    }
+    return [res.giftLink || `Гифт отправлен: транзакция ${transactionId}`]
   }
 
   // Локальные ключи (тип 1а — из файла).

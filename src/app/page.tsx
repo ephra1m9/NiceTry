@@ -160,48 +160,19 @@ export default function HomePage() {
           Это только обёртка/триггер; сам флоу открывается на /send-game.
           Видимость управляется из админки (активность категорий Dessly). */}
       {sendGameEnabled && (
-      <Link
-        href="/send-game"
-        className="send-game-card"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          padding: '18px 22px',
-          marginBottom: 24,
-          borderRadius: 16,
-          background: 'linear-gradient(100deg, #eef5ff 0%, #ffffff 60%)',
-          border: '1px solid #dbe7fb',
-          textDecoration: 'none',
-          color: '#0f1e3c',
-          boxShadow: '0 2px 10px rgba(15,30,60,.06)',
-        }}
-      >
-        <div
-          style={{
-            flex: '0 0 auto',
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: '#1f6feb',
-            display: 'grid',
-            placeItems: 'center',
-            color: '#fff',
-            fontSize: 24,
-          }}
-          aria-hidden
-        >
-          🎮
+      <Link href="/send-game" className="send-game-card">
+        <div className="sgc-icon" aria-hidden>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="9" rx="2.5" />
+            <path d="M7 15.5h2M8 14.5v2M15 15h.01M17.5 16.5h.01" />
+            <path d="M9 11V6.5a3 3 0 016 0V11" />
+          </svg>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 17 }}>Отправь игру в стим</div>
-          <div style={{ color: '#5b6b86', fontSize: 14 }}>
-            Подари любую игру по ссылке-приглашению Steam — выбор издания, региона и расчёт за пару кликов.
-          </div>
+        <div className="sgc-text">
+          <div className="sgc-title">Отправь игру в Steam</div>
+          <div className="sgc-sub">Подари игру по ссылке-приглашению — издание, регион и расчёт за пару кликов.</div>
         </div>
-        <div className="btn btn-primary" style={{ flex: '0 0 auto' }}>
-          Отправить
-        </div>
+        <span className="btn btn-primary sgc-cta">Отправить</span>
       </Link>
       )}
 

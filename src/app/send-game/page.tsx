@@ -38,11 +38,13 @@ interface DesslyConfig {
 type Step = 'game' | 'details' | 'confirm'
 type PageState = 'loading' | 'ready' | 'error' | 'success'
 
-// Emoji flags for region codes
-const REGION_FLAGS: Record<string, string> = {
-  RU: '🇷🇺', KZ: '🇰🇿', UA: '🇺🇦', TR: '🇹🇷', CN: '🇨🇳',
-  KR: '🇰🇷', ID: '🇮🇩', VN: '🇻🇳', IN: '🇮🇳',
-  US: '🇺🇸', PL: '🇵🇱', DE: '🇩🇪', FR: '🇫🇷', UK: '🇬🇧',
+// ISO 3166-1 alpha-2 codes for flag images (region code → flag country code).
+// Эмодзи-флаги не рендерятся на Windows (показываются как «RU»), поэтому используем
+// растровые/векторные флаги с flagcdn — выглядят одинаково на всех платформах.
+const REGION_CC: Record<string, string> = {
+  RU: 'ru', KZ: 'kz', UA: 'ua', TR: 'tr', CN: 'cn',
+  KR: 'kr', ID: 'id', VN: 'vn', IN: 'in',
+  US: 'us', PL: 'pl', DE: 'de', FR: 'fr', UK: 'gb',
 }
 
 const REGION_NAMES: Record<string, string> = {
@@ -222,7 +224,7 @@ export default function SendGamePage() {
       <div className="sg-container">
         {/* Header */}
         <header className="sg-header">
-          <h1 className="sg-title">Отправь игру в стим</h1>
+          <h1 className="sg-title">Отправь игру в Steam</h1>
           <p className="sg-subtitle">Подарите игру другу по ссылке-приглашению Steam</p>
         </header>
 
@@ -332,8 +334,10 @@ export default function SendGamePage() {
                   <div className="sg-card">
                     {/* Selected game chip */}
                     <div className="sg-chosen-game">
-                      <GameThumb src={selectedGame.image_url} name={selectedGame.name} />
-                      <div>
+                      <div className="sg-chosen-thumb">
+                        <GameThumb src={selectedGame.image_url} name={selectedGame.name} aspect />
+                      </div>
+                      <div className="sg-chosen-info">
                         <div className="sg-chosen-name">{selectedGame.name}</div>
                         <button onClick={() => setStep('game')} className="sg-link-btn">Изменить</button>
                       </div>
@@ -350,7 +354,7 @@ export default function SendGamePage() {
                               onClick={() => setRegion(r)}
                               className={`sg-region-chip ${region === r ? 'sg-region-chip--active' : ''}`}
                             >
-                              <span className="sg-region-flag">{REGION_FLAGS[r] || ''}</span>
+                              <Flag code={r} className="sg-region-flag" />
                               <span className="sg-region-code">{r}</span>
                               <span className="sg-region-name">{REGION_NAMES[r] || ''}</span>
                             </button>
@@ -439,7 +443,10 @@ export default function SendGamePage() {
                       </div>
                       <div className="sg-confirm-row">
                         <span>Регион</span>
-                        <span className="sg-confirm-val">{REGION_FLAGS[region] || ''} {region} — {REGION_NAMES[region] || ''}</span>
+                        <span className="sg-confirm-val sg-confirm-region">
+                          <Flag code={region} className="sg-region-flag" />
+                          {region} — {REGION_NAMES[region] || ''}
+                        </span>
                       </div>
                       <div className="sg-confirm-row">
                         <span>Получатель</span>
@@ -499,6 +506,38 @@ function openWidget(url: string, isTelegram: boolean) {
     if (isTelegram && tg?.openLink) tg.openLink(url)
     else window.open(url, '_blank', 'noopener,noreferrer')
   }
+}
+
+/**
+ * Кросс-платформенный флаг страны. Эмодзи-флаги не отображаются на Windows
+ * (вместо 🇷🇺 видно «RU»), поэтому рисуем картинку. Основной CDN — flagcdn;
+ * при сбое (блокировка/нет сети) пробуем flagsapi, затем fallback-код в рамке.
+ */
+function Flag({ code, className }: { code: string; className?: string }) {
+  const [attempt, setAttempt] = useState(0) // 0=flagcdn, 1=flagsapi, 2=fallback
+  const cc = REGION_CC[code]
+  if (!cc || attempt >= 2) {
+    return <span className={`sg-flag-fallback ${className || ''}`.trim()}>{code}</span>
+  }
+  const src =
+    attempt === 0
+      ? `https://flagcdn.com/w40/${cc}.png`
+      : `https://flagsapi.com/${cc.toUpperCase()}/flat/32.png`
+  const srcSet = attempt === 0
+    ? `https://flagcdn.com/w80/${cc}.png 2x`
+    : undefined
+  return (
+    <img
+      className={`sg-flag-img ${className || ''}`.trim()}
+      src={src}
+      srcSet={srcSet}
+      alt={code}
+      width={20}
+      height={15}
+      loading="lazy"
+      onError={() => setAttempt((a) => a + 1)}
+    />
+  )
 }
 
 /** Step indicator bar */
@@ -639,8 +678,12 @@ const SEND_GAME_CSS = `
 
   /* ---- Header ---- */
   .sg-header { margin-bottom: 24px; }
-  .sg-title { font-size: 28px; font-weight: 800; color: var(--navy, #0f1e2e); margin: 0 0 6px; letter-spacing: -0.01em; }
-  .sg-subtitle { color: var(--muted, #5b6472); margin: 0; font-size: 15px; }
+  .sg-title { font-size: 22px; font-weight: 800; color: var(--navy, #0f1e2e); margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sg-subtitle { color: var(--muted, #5b6472); margin: 0; font-size: 14px; }
+  @media (min-width: 601px) {
+    .sg-title { font-size: 28px; }
+    .sg-subtitle { font-size: 15px; }
+  }
 
   /* ---- Card ---- */
   .sg-card { background: var(--surface, #fff); border: 1px solid var(--border, #e6eaf0); border-radius: 14px; padding: 24px; }
@@ -670,28 +713,34 @@ const SEND_GAME_CSS = `
 
   /* ---- Stepper ---- */
   .sg-stepper { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 20px;
-    padding: 16px 20px; background: var(--surface, #fff); border: 1px solid var(--border, #e6eaf0);
-    border-radius: 14px; overflow-x: auto; }
-  .sg-step-row { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-  .sg-step-line { width: 32px; height: 2px; background: var(--border, #e6eaf0); border-radius: 1px; margin: 0 6px; }
+    padding: 12px 16px; background: var(--surface, #fff); border: 1px solid var(--border, #e6eaf0);
+    border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sg-step-row { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .sg-step-line { width: 20px; height: 2px; background: var(--border, #e6eaf0); border-radius: 1px; margin: 0 4px; flex: none; }
   .sg-step-line--done { background: var(--blue, #1c8ce3); }
-  .sg-step-bubble { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; border: 2px solid var(--border, #e6eaf0); background: #fff; color: var(--muted-2);
-    cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+  .sg-step-bubble { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; border: 2px solid var(--border, #e6eaf0); background: #fff; color: var(--muted-2);
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0; padding: 0; }
   .sg-step-bubble:disabled { cursor: default; }
   .sg-step-bubble--active { border-color: var(--blue, #1c8ce3); background: var(--blue, #1c8ce3); color: #fff; }
   .sg-step-bubble--done { border-color: var(--green, #15a05a); background: var(--green, #15a05a); color: #fff; }
-  .sg-step-label { font-size: 13px; color: var(--muted-2, #869099); white-space: nowrap; }
+  .sg-step-label { font-size: 12px; color: var(--muted-2, #869099); white-space: nowrap; }
   .sg-step-label--active { color: var(--navy, #0f1e2e); font-weight: 600; }
 
   /* ---- Search ---- */
   .sg-search-row { margin-bottom: 16px; }
-  .sg-search-input { font-size: 15px; }
+  .sg-search-input { font-size: 14px; }
+  @media (min-width: 601px) {
+    .sg-search-input { font-size: 15px; }
+  }
 
   /* ---- Game Grid ---- */
   .sg-games-meta { font-size: 12px; color: var(--muted-2, #869099); margin-bottom: 12px; }
-  .sg-game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;
-    max-height: 460px; overflow-y: auto; padding: 2px; }
+  .sg-game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(114px, 1fr)); gap: 8px;
+    max-height: 420px; overflow-y: auto; padding: 2px; -webkit-overflow-scrolling: touch; }
+  @media (min-width: 500px) {
+    .sg-game-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 460px; }
+  }
   .sg-games-hint { font-size: 12px; color: var(--muted-2); text-align: center; margin-top: 12px; }
 
   .sg-game-card { display: flex; flex-direction: column; border: 1.5px solid var(--border, #e6eaf0);
@@ -708,7 +757,10 @@ const SEND_GAME_CSS = `
   .sg-thumb-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; }
 
   /* ---- Skeleton ---- */
-  .sg-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .sg-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(114px, 1fr)); gap: 8px; }
+  @media (min-width: 500px) {
+    .sg-skeleton-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  }
   .sg-skeleton-card { border-radius: 10px; overflow: hidden; border: 1px solid var(--border-2, #edf1f6); }
   .sg-skeleton-img { aspect-ratio: 460 / 215; background: linear-gradient(90deg, #eef2f8 25%, #f4f7fa 50%, #eef2f8 75%);
     background-size: 200% 100%; animation: sg-shimmer 1.5s infinite; }
@@ -740,6 +792,10 @@ const SEND_GAME_CSS = `
   /* ---- Step 2: chosen game ---- */
   .sg-chosen-game { display: flex; align-items: center; gap: 12px; padding: 12px;
     background: var(--blue-50, #eaf4fd); border-radius: 12px; margin-bottom: 20px; }
+  .sg-chosen-thumb { flex: none; width: 96px; border-radius: 8px; overflow: hidden; }
+  .sg-chosen-thumb :global(.sg-thumb-img),
+  .sg-chosen-thumb :global(.sg-thumb-fallback) { border-radius: 8px; }
+  .sg-chosen-info { min-width: 0; flex: 1; }
   .sg-chosen-name { font-weight: 700; color: var(--navy, #0f1e2e); font-size: 15px; margin-bottom: 2px; }
 
   .sg-details-grid { display: grid; gap: 16px; }
@@ -748,27 +804,43 @@ const SEND_GAME_CSS = `
   .sg-field-error { color: var(--red, #d63b3b); font-size: 12px; }
 
   /* ---- Region chips ---- */
-  .sg-region-select { display: flex; flex-wrap: wrap; gap: 8px; }
-  .sg-region-chip { display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+  .sg-region-select { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+  @media (min-width: 900px) {
+    .sg-region-select { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  }
+  .sg-region-chip { display: flex; align-items: center; gap: 6px; padding: 8px 10px;
     border: 1.5px solid var(--border, #e6eaf0); border-radius: 10px; background: #fff;
-    cursor: pointer; transition: all 0.15s; font-size: 13px; min-height: 44px; }
+    cursor: pointer; transition: all 0.15s; font-size: 12px; min-height: 44px; text-align: left; }
+  @media (min-width: 601px) {
+    .sg-region-chip { gap: 8px; padding: 8px 12px; font-size: 13px; }
+  }
   .sg-region-chip:hover { border-color: var(--blue-200, #bfddf7); }
   .sg-region-chip--active { border-color: var(--blue, #1c8ce3); background: var(--blue-50, #eaf4fd); }
-  .sg-region-flag { font-size: 20px; }
-  .sg-region-code { font-weight: 700; color: var(--navy, #0f1e2e); }
-  .sg-region-name { color: var(--muted, #5b6472); }
+  .sg-region-code { font-weight: 700; color: var(--navy, #0f1e2e); flex: none; }
+  .sg-region-name { color: var(--muted, #5b6472); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+  @media (min-width: 601px) {
+    .sg-region-name { font-size: 13px; }
+  }
+
+  /* ---- Flags (cross-platform images instead of emoji) ---- */
+  .sg-flag-img { width: 22px; height: 16px; border-radius: 3px; object-fit: cover; flex: none;
+    box-shadow: 0 0 0 1px rgba(16,32,46,0.08); display: block; }
+  .sg-flag-fallback { display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 16px; border-radius: 3px; background: var(--gray-bg, #eff2f5);
+    font-size: 8px; font-weight: 800; color: var(--muted, #5b6472); flex: none;
+    box-shadow: 0 0 0 1px rgba(16,32,46,0.08); }
 
   /* ---- Edition chips ---- */
   .sg-edition-loading, .sg-edition-empty { font-size: 13px; color: var(--muted, #5b6472); padding: 8px 0; }
-  .sg-edition-list { display: flex; flex-wrap: wrap; gap: 8px; }
-  .sg-edition-chip { display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  .sg-edition-list { display: flex; flex-direction: column; gap: 8px; }
+  .sg-edition-chip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; width: 100%;
     border: 1.5px solid var(--border, #e6eaf0); border-radius: 10px; background: #fff;
-    cursor: pointer; transition: all 0.15s; min-height: 44px; }
+    cursor: pointer; transition: all 0.15s; min-height: 44px; text-align: left; }
   .sg-edition-chip:hover { border-color: var(--blue-200); }
   .sg-edition-chip--active { border-color: var(--blue, #1c8ce3); background: var(--blue-50, #eaf4fd); }
-  .sg-edition-name { font-weight: 600; color: var(--navy, #0f1e2e); font-size: 14px; }
-  .sg-edition-price { color: var(--muted, #5b6472); font-size: 13px; }
-  .sg-edition-badge { background: var(--green-bg, #e7f6ed); color: var(--green, #15a05a);
+  .sg-edition-name { flex: 1; min-width: 0; font-weight: 600; color: var(--navy, #0f1e2e); font-size: 14px; }
+  .sg-edition-price { flex: none; color: var(--navy, #0f1e2e); font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .sg-edition-badge { flex: none; background: var(--green-bg, #e7f6ed); color: var(--green, #15a05a);
     padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 
   /* ---- Help ---- */
@@ -783,6 +855,7 @@ const SEND_GAME_CSS = `
   .sg-confirm-row { display: flex; justify-content: space-between; align-items: center;
     font-size: 14px; color: var(--muted, #5b6472); }
   .sg-confirm-val { font-weight: 600; color: var(--ink, #10202e); text-align: right; }
+  .sg-confirm-region { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
   .sg-confirm-divider { height: 1px; background: var(--border, #e6eaf0); margin: 4px 0; }
   .sg-confirm-row--total { font-size: 16px; font-weight: 700; color: var(--navy, #0f1e2e); }
   .sg-confirm-total { font-size: 20px; font-weight: 800; color: var(--navy, #0f1e2e); }
@@ -791,17 +864,51 @@ const SEND_GAME_CSS = `
 
   /* ---- Responsive ---- */
   @media (max-width: 600px) {
-    .sg-title { font-size: 22px; }
-    .sg-stepper { padding: 10px 12px; gap: 0; }
-    .sg-step-line { width: 20px; }
-    .sg-step-label { font-size: 11px; }
-    .sg-game-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 380px; }
-    .sg-skeleton-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-    .sg-region-select { gap: 6px; }
-    .sg-region-chip { padding: 6px 10px; }
+    .send-game-root { padding: 12px 0 48px; }
+    .sg-container { padding: 0 10px; }
+    .sg-header { margin-bottom: 14px; }
+    .sg-card { padding: 14px 12px; border-radius: 12px; }
+    .sg-stepper { padding: 8px 10px; }
+    .sg-step-label { display: none; }
+    .sg-step-row { gap: 0; }
+    .sg-step-line { width: 12px; margin: 0 3px; }
+    .sg-step-bubble { width: 24px; height: 24px; font-size: 10px; }
+    .sg-game-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; max-height: 340px; }
+    .sg-skeleton-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; }
+    .sg-region-select { grid-template-columns: 1fr 1fr; gap: 5px; }
+    .sg-region-chip { padding: 7px 8px; gap: 5px; min-height: 40px; }
+    .sg-region-name { font-size: 11px; }
+    .sg-region-code { font-size: 11px; }
+    .sg-flag-img { width: 18px; height: 13px; }
+    .sg-flag-fallback { width: 18px; height: 13px; font-size: 7px; }
+    .sg-chosen-thumb { width: 64px; }
+    .sg-chosen-game { gap: 8px; padding: 10px; }
+    .sg-chosen-name { font-size: 13px; }
+    .sg-edition-chip { padding: 10px 12px; }
+    .sg-edition-name { font-size: 13px; }
+    .sg-edition-price { font-size: 13px; }
+    .sg-details-grid { gap: 12px; }
+    .sg-confirm-row { font-size: 13px; }
+    .sg-confirm-total { font-size: 18px; }
+    .sg-btn { font-size: 14px; padding: 9px 18px; min-height: 40px; }
+    .sg-btn--lg { padding: 12px 20px; font-size: 15px; }
+    .sg-step-title { font-size: 16px; }
+  }
+  @media (max-width: 380px) {
+    .sg-container { padding: 0 8px; }
+    .sg-card { padding: 12px 10px; }
+    .sg-game-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 5px; max-height: 300px; }
+    .sg-region-select { grid-template-columns: 1fr; gap: 5px; }
+    .sg-game-name { font-size: 11px; padding: 5px 6px 7px; }
+    .sg-game-card { border-radius: 8px; }
   }
 
   /* ---- Mini App ---- */
-  html.tg-webapp .send-game-root { padding-top: 8px; }
-  html.tg-webapp .sg-game-grid { max-height: 340px; }
+  html.tg-webapp .send-game-root { padding-top: 4px; padding-bottom: 32px; }
+  html.tg-webapp .sg-container { padding-left: 8px; padding-right: 8px; }
+  html.tg-webapp .sg-game-grid { max-height: 280px; }
+  html.tg-webapp .sg-header { margin-bottom: 10px; }
+  html.tg-webapp .sg-title { font-size: 20px; }
+  html.tg-webapp .sg-stepper { margin-bottom: 12px; }
+  html.tg-webapp .sg-card { padding: 12px 10px; }
 `
