@@ -422,6 +422,84 @@ describe('Dessly — отправка игры гифтом (Блок B3)', () =
     const { data: items } = await retry(() => admin.from('order_items').select('*').eq('order_id', body.order.id))
     expect(items![0].delivery_status).toBe('failed')
   }, 60000)
+
+  // Задача 6: живой каталог игр Dessly цену НЕ отдаёт (price=0 в карточке). Цена должна
+  // браться из издания/региона (getGame/resolvePackage), а заказ НИКОГДА не проходить с 0.
+  it('цена Dessly берётся из издания/региона при нулевой цене карточки (не 0)', async () => {
+    // Товар с НУЛЕВОЙ ценой в БД — как у боевого Dessly (games не несёт цену).
+    const gameId = `dessly_vt_${randomUUID().slice(0, 8)}`
+    const { data: game, error } = await retry(() =>
+      admin
+        .from('products')
+        .insert({
+          name: `VITEST Dessly zero-price ${randomUUID().slice(0, 6)}`,
+          type: 'instant',
+          category_id: instantProduct.category_id,
+          price: 0, // ← цена из карточки = 0
+          is_active: true,
+          supplier: 'dessly',
+          supplier_service_id: gameId,
+          denomination_id: gameId,
+        })
+        .select()
+        .single()
+    )
+    if (error || !game) throw new Error(`seed zero-price dessly: ${error?.message}`)
+    createdProductIds.push(game.id)
+
+    const user = await seedUser(5000, { statusId: zeroStatusId })
+    currentUser = user
+
+    const res = await ordersCreatePOST(
+      req({
+        items: [{ product_id: game.id, quantity: 1, form_data: { recipient: 'https://s.team/p/abcd-1234', region: 'RU' } }],
+        payment_method: 'balance',
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    // Ключевое: итоговая сумма НЕ ноль — она пришла из издания/региона, а не из карточки.
+    expect(body.order.final_amount).toBeGreaterThan(0)
+    expect(body.order.total_amount).toBeGreaterThan(0)
+    expect(body.order.status).toBe('delivered')
+    // Баланс уменьшился ровно на ненулевую итоговую сумму.
+    expect(await getBalance(user.id)).toBe(5000 - Number(body.order.final_amount))
+  }, 60000)
+
+  it('guard: недоступный регион → заказ не проводится (ошибка), баланс не списан', async () => {
+    const gameId = `dessly_vt_${randomUUID().slice(0, 8)}`
+    const { data: game, error } = await retry(() =>
+      admin
+        .from('products')
+        .insert({
+          name: `VITEST Dessly badregion ${randomUUID().slice(0, 6)}`,
+          type: 'instant',
+          category_id: instantProduct.category_id,
+          price: 0,
+          is_active: true,
+          supplier: 'dessly',
+          supplier_service_id: gameId,
+          denomination_id: gameId,
+        })
+        .select()
+        .single()
+    )
+    if (error || !game) throw new Error(`seed badregion dessly: ${error?.message}`)
+    createdProductIds.push(game.id)
+
+    const user = await seedUser(5000, { statusId: zeroStatusId })
+    currentUser = user
+
+    const res = await ordersCreatePOST(
+      req({
+        items: [{ product_id: game.id, quantity: 1, form_data: { recipient: 'https://s.team/p/abcd-1234', region: 'ZZ' } }],
+        payment_method: 'balance',
+      })
+    )
+    // Цена не резолвится (нет такого региона) → 400, заказ не создаётся, деньги на месте.
+    expect(res.status).toBe(400)
+    expect(await getBalance(user.id)).toBe(5000)
+  }, 60000)
 })
 
 describe('Реферальные начисления + защита от самореферала', () => {

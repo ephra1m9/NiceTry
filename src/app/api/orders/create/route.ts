@@ -62,6 +62,10 @@ class DeliveryPendingError extends Error {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+// Кол-во опросов статуса выдачи Dessly при создании заказа (backoff 1.5–3с → ~30с суммарно).
+// Вынесено в константу, чтобы тест мог переопределить через env и не ждать реальные 30с.
+const DESSLY_POLL_MAX_TRIES = Number(process.env.DESSLY_POLL_MAX_TRIES) || 12
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -496,11 +500,13 @@ async function deliverInstant(
     const transactionId = res.transactionId
     // Отслеживание статуса: если гифт ещё в обработке — опрашиваем С ПАУЗОЙ до терминального
     // исхода. Без паузы 10 опросов укладывались в <1с, статус оставался pending → заказ ложно
-    // помечался failed, хотя Dessly доводил выдачу через несколько секунд.
+    // помечался failed, хотя Dessly доводит выдачу через несколько секунд (paid→executing→completed).
+    // Backoff 1.5–3с, общий бюджет ~30с (укладывается в maxDuration=60). Если по истечении
+    // статус всё ещё pending — НЕ провал: уходим в DeliveryPendingError, дозабор делает cron.
     let tries = 0
-    while (res.status === 'pending' && transactionId && tries < 6) {
+    while (res.status === 'pending' && transactionId && tries < DESSLY_POLL_MAX_TRIES) {
+      await sleep(Math.min(1500 + tries * 500, 3000))
       tries += 1
-      await sleep(2500)
       res = await getTransactionStatus(transactionId)
     }
     if (res.status === 'failed') {
