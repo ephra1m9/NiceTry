@@ -14,7 +14,7 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { user: authUser } = useAuth()
   const { user } = useUser()
-  const { items, totalAmount, clearCart } = useCart()
+  const { items, totalAmount, clearCart, promo, promoDiscount } = useCart()
 
   const [paymentMethod, setPaymentMethod] = useState<'balance' | 'card'>('balance')
   const [processing, setProcessing] = useState(false)
@@ -23,7 +23,7 @@ export default function CheckoutPage() {
   const statusDiscount = user?.status?.discount_percent
     ? (totalAmount * user.status.discount_percent) / 100
     : 0
-  const finalAmount = Math.max(0, totalAmount - statusDiscount)
+  const finalAmount = Math.max(0, totalAmount - statusDiscount - promoDiscount)
   const insufficient = paymentMethod === 'balance' && !!user && user.balance < finalAmount
 
   const handleSubmit = async () => {
@@ -55,8 +55,10 @@ export default function CheckoutPage() {
             form_data: item.formData,
           })),
           payment_method: paymentMethod,
+          // Промокод передаём серверу — он пересчитает и применит скидку авторитетно.
+          promo_code: promo?.code,
           total_amount: totalAmount,
-          discount_amount: statusDiscount,
+          discount_amount: statusDiscount + promoDiscount,
           final_amount: finalAmount,
         }),
       })
@@ -196,6 +198,12 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted">Скидка статуса ({user?.status?.discount_percent}%)</span>
                     <span className="font-semibold text-green">−{formatPrice(statusDiscount)}</span>
+                  </div>
+                )}
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted">Промокод{promo?.code ? ` (${promo.code})` : ''}</span>
+                    <span className="font-semibold text-green">−{formatPrice(promoDiscount)}</span>
                   </div>
                 )}
               </div>

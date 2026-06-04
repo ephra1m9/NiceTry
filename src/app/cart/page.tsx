@@ -11,14 +11,13 @@ import Card from '@/components/ui/Card'
 
 export default function CartPage() {
   const router = useRouter()
-  const { items, removeFromCart, updateQuantity, clearCart, totalAmount } = useCart()
+  const { items, removeFromCart, updateQuantity, clearCart, totalAmount, promo, applyPromo, clearPromo, promoDiscount } = useCart()
   const { user } = useUser()
 
-  const [promoCode, setPromoCode] = useState('')
-  const [promoDiscount, setPromoDiscount] = useState(0)
+  const [promoCode, setPromoCode] = useState(promo?.code ?? '')
   const [promoError, setPromoError] = useState('')
-  const [promoApplied, setPromoApplied] = useState(false)
   const [applying, setApplying] = useState(false)
+  const promoApplied = !!promo
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return
@@ -31,22 +30,20 @@ export default function CartPage() {
       })
       const data = await res.json()
       if (res.ok && data.valid) {
-        if (data.discount_type === 'percent') {
-          setPromoDiscount((totalAmount * data.discount_value) / 100)
-        } else {
-          setPromoDiscount(data.discount_value)
-        }
+        // Сохраняем промокод в корзину (переживёт переход на чекаут). Скидка считается в контексте.
+        applyPromo({
+          code: promoCode.trim().toUpperCase(),
+          discount_type: data.discount_type,
+          discount_value: Number(data.discount_value),
+        })
         setPromoError('')
-        setPromoApplied(true)
       } else {
         setPromoError(data.error || 'Промокод недействителен')
-        setPromoDiscount(0)
-        setPromoApplied(false)
+        clearPromo()
       }
     } catch (err) {
       setPromoError('Ошибка проверки промокода')
-      setPromoDiscount(0)
-      setPromoApplied(false)
+      clearPromo()
     } finally {
       setApplying(false)
     }
