@@ -8,6 +8,7 @@
 // Наценка и курс берутся из категории (плейсхолдеры в catalog.json, редактируются в админке).
 
 import catalog from '@/data/catalog.json'
+import brandLogos from '@/data/approute-brand-logos.json'
 import { listServices, type AppRouteService } from '@/lib/approute'
 import { mapServiceToCategorySlug } from '@/lib/approute/category-map'
 import { listGames, type DesslyGame } from '@/lib/dessly'
@@ -27,6 +28,40 @@ type RawCategory = (typeof catalog.categories)[number]
  */
 export function priceRub(priceUsd: number, rate: number, markupPercent: number): number {
   return Math.ceil((priceUsd * rate * (100 + markupPercent)) / 100)
+}
+
+// Извлечение URL обложки из сырого объекта поставщика: берём первое валидное абсолютное
+// http(s)-значение из распространённых имён полей. Имя поля в боевом API уточняется дампом
+// (scripts/_dump_approute.mjs); устойчивость к синонимам нужна, чтобы не зависеть от его исхода.
+const IMAGE_KEYS = [
+  'imageUrl', 'image', 'imageURL', 'iconUrl', 'icon', 'logoUrl', 'logo',
+  'coverUrl', 'cover', 'pictureUrl', 'picture', 'thumbnailUrl', 'thumbnail', 'imgUrl', 'img',
+]
+function pickImageUrl(obj: unknown): string | undefined {
+  if (!obj || typeof obj !== 'object') return undefined
+  const rec = obj as Record<string, unknown>
+  for (const k of IMAGE_KEYS) {
+    const v = rec[k]
+    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim()
+  }
+  return undefined
+}
+function steamHeader(appId?: number): string | undefined {
+  return appId
+    ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`
+    : undefined
+}
+// Логотип бренда по section: боевой AppRoute картинок не отдаёт (см. WORKLOG 2026-06-05), поэтому
+// обложку даём как логотип бренда (Google favicon sz=256 по домену из approute-brand-logos.json).
+// Родовые section (Mobile, TV, Games…) в карту не входят → undefined → градиент-фолбэк PCard.
+const BRAND_DOMAINS: Record<string, string> = brandLogos.domains
+function brandLogo(section?: string): string | undefined {
+  const domain = section ? BRAND_DOMAINS[section.trim()] : undefined
+  return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : undefined
+}
+/** Обложка SKU: номинал → сервис → Steam header.jpg по appId → логотип бренда по section. */
+function serviceImage(svc: AppRouteService, den?: unknown): string | undefined {
+  return pickImageUrl(den) ?? pickImageUrl(svc) ?? steamHeader(svc.appId) ?? brandLogo(svc.section)
 }
 
 function catFromRaw(raw: RawCategory): CatalogCategory {
@@ -83,6 +118,7 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
         min_amount: priceRub(minUsd, cat.usd_to_rub_rate, cat.markup_percent),
         max_amount: priceRub(maxUsd, cat.usd_to_rub_rate, cat.markup_percent),
         supplier_fields: svc.fields ?? null,
+        image_url: serviceImage(svc),
         created_at: NOW,
         updated_at: NOW,
       })
@@ -110,6 +146,7 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
           supplier: 'approute',
           supplier_id: svc.id,
           denomination_id: denomId,
+          image_url: serviceImage(svc, den),
           created_at: NOW,
           updated_at: NOW,
         })

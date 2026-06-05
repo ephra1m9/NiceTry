@@ -75,9 +75,15 @@ export function PCard({ product }: { product: Product }) {
   const h = hash(key)
 
   const platform = detectPlatform(product.name)
-  const cover = platform
+  const gradient = platform
     ? COVER_GRADIENTS[platform]
     : COVER_GRADIENTS[COVER_KEYS[h % COVER_KEYS.length]]
+  // Реальная обложка от поставщика (product.image_url) кладётся фоном поверх градиента.
+  // Если ссылка битая/не загрузилась — снизу остаётся брендовый градиент (картинка «обязательна»:
+  // визуал есть всегда), а тёмный скрим .cover::after держит читаемость названия.
+  const cover = product.image_url
+    ? `url("${product.image_url}") center / cover no-repeat, ${gradient}`
+    : gradient
   const plat = (platform ?? product.category?.name ?? 'NiceTry').toUpperCase()
   const ttl = product.name.split(' — ')[0]
 

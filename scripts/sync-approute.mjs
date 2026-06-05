@@ -73,6 +73,36 @@ const isLive =
 
 const priceRub = (usd, rate, markup) => Math.ceil((usd * rate * (100 + markup)) / 100)
 
+// Обложка SKU. Зеркало pickImageUrl/serviceImage из src/lib/catalog.ts: берём первое валидное
+// абсолютное http(s)-поле из распространённых имён (имя в боевом API уточняется дампом
+// scripts/_dump_approute.mjs), иначе дериватив Steam header.jpg по appId сервиса.
+const IMAGE_KEYS = [
+  'imageUrl', 'image', 'imageURL', 'iconUrl', 'icon', 'logoUrl', 'logo',
+  'coverUrl', 'cover', 'pictureUrl', 'picture', 'thumbnailUrl', 'thumbnail', 'imgUrl', 'img',
+]
+const pickImageUrl = (obj) => {
+  if (!obj || typeof obj !== 'object') return null
+  for (const k of IMAGE_KEYS) {
+    const v = obj[k]
+    if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim()
+  }
+  return null
+}
+const steamHeader = (appId) =>
+  appId ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg` : null
+// Логотип бренда по section: боевой AppRoute картинок не отдаёт (см. WORKLOG 2026-06-05), поэтому
+// обложку даём логотипом бренда (Google favicon sz=256 по домену из approute-brand-logos.json).
+// Зеркало brandLogo() из src/lib/catalog.ts. Родовые section (Mobile, TV…) в карту не входят → null.
+const BRAND_DOMAINS = JSON.parse(
+  readFileSync(join(root, 'src/data/approute-brand-logos.json'), 'utf8')
+).domains
+const brandLogo = (section) => {
+  const domain = section ? BRAND_DOMAINS[section.trim()] : null
+  return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : null
+}
+const serviceImage = (svc, den) =>
+  pickImageUrl(den) ?? pickImageUrl(svc) ?? steamHeader(svc.appId) ?? brandLogo(svc.section)
+
 // Таймауты запросов (чтобы синк не висел бесконечно) и размер пачки записи.
 // BATCH_SIZE=25: на боевом прогоне 2026-06-05 эта сеть рвёт POST-тела к Supabase больше ~28КБ
 // ("TypeError: fetch failed" детерминированно на ВСЕХ ретраях). Замер (_test_batch.mjs):
@@ -264,7 +294,7 @@ async function run() {
         price: 0, is_active: true, supplier: 'approute', supplier_service_id: svc.id, denomination_id: denomId,
         min_amount: priceRub(svc.minAmountUsd ?? 1, rate, markup),
         max_amount: priceRub(svc.maxAmountUsd ?? 500, rate, markup),
-        supplier_fields: svc.fields || null, sort_order: sort++,
+        supplier_fields: svc.fields || null, image_url: serviceImage(svc), sort_order: sort++,
       })
     } else {
       const regions = svc.regions && svc.regions.length ? svc.regions : [null]
@@ -279,7 +309,8 @@ async function run() {
             name: `${svc.name} — ${den.name}${nameSuffix}`, description: svc.description || '', type: 'instant',
             category_id: categoryId, price: priceRub(den.price, rate, markup),
             stock: stockNum, is_active: stockNum > 0, supplier: 'approute',
-            supplier_service_id: svc.id, denomination_id: denomId, sort_order: sort++,
+            supplier_service_id: svc.id, denomination_id: denomId,
+            image_url: serviceImage(svc, den), sort_order: sort++,
           })
         }
       }

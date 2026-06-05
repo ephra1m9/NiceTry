@@ -5,10 +5,16 @@ import { Product, Category } from '@/types'
 import { PCard } from '@/components/PCard'
 import { ProductFilters, FilterState } from '@/components/ProductFilters'
 
+// Размер страницы каталога. API /api/products отдаёт максимум 200 за запрос (clampInt),
+// 50 — баланс между «не грузить всё разом» и числом нажатий «Показать ещё».
+const PAGE_SIZE = 50
+
 export default function CatalogPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   // Поисковый запрос из URL (?search=…) — читаем один раз на клиенте,
   // чтобы переход из шапки реально фильтровал каталог.
   const [initialSearch, setInitialSearch] = useState<string | undefined>(undefined)
@@ -21,6 +27,32 @@ export default function CatalogPage() {
     min_price: '',
     max_price: '',
   })
+
+  // Грузит страницу товаров. append=false — первая страница (сброс при смене фильтров),
+  // append=true — догрузка следующей по кнопке «Показать ещё».
+  function loadPage(append: boolean) {
+    const offset = append ? products.length : 0
+    if (append) setLoadingMore(true)
+    else setLoading(true)
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value)
+    })
+    params.append('limit', String(PAGE_SIZE))
+    params.append('offset', String(offset))
+    fetch(`/api/products?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const page: Product[] = data.products || []
+        setProducts((prev) => (append ? [...prev, ...page] : page))
+        setTotal(typeof data.total === 'number' ? data.total : page.length)
+      })
+      .catch((err) => console.error('Failed to load products:', err))
+      .finally(() => {
+        setLoading(false)
+        setLoadingMore(false)
+      })
+  }
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search).get('search') || ''
@@ -38,23 +70,11 @@ export default function CatalogPage() {
       .catch((err) => console.error('Failed to load categories:', err))
   }, [])
 
+  // Смена фильтров (или первая готовность) — грузим первую страницу заново.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!ready) return
-    setLoading(true)
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.append(key, value)
-    })
-    fetch(`/api/products?${params.toString()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data.products || [])
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error('Failed to load products:', err)
-        setLoading(false)
-      })
+    loadPage(false)
   }, [filters, ready])
 
   return (
@@ -94,13 +114,25 @@ export default function CatalogPage() {
           ) : (
             <>
               <div className="mb-4 text-sm text-muted">
-                Найдено товаров: <span className="font-semibold text-ink">{products.length}</span>
+                Показано <span className="font-semibold text-ink">{products.length}</span> из{' '}
+                <span className="font-semibold text-ink">{total}</span>
               </div>
               <div className="prod-grid">
                 {products.map((product) => (
                   <PCard key={product.id} product={product} />
                 ))}
               </div>
+              {products.length < total && (
+                <div className="flex justify-center mt-6 sm:mt-8">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => loadPage(true)}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Загрузка…' : 'Показать ещё'}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

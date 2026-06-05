@@ -4,6 +4,120 @@
 
 ---
 
+## 2026-06-05 | Витрина: все товары + картинки AppRoute + листание — IN PROGRESS
+
+**Над чем работаю:** показать ВЕСЬ боевой каталог AppRoute (3560 активных, а не первые 50),
+с реальными картинками и листанием.
+
+**Диагноз (подтверждено по БД):**
+- approute-товары в БД — БОЕВЫЕ, не моки: UUID `supplier_service_id`/`denomination_id`,
+  2249 строк, реальные имена («Apple Gift Card | AE», «Cat Quest III»), 2246/2249 с ненулевой
+  ценой. Моки в `catalog.json` используют slug-id (`svc_*`,`den_*`) и таких имён не содержат.
+- «50 товаров» — `catalog/page.tsx` не шлёт `limit` → дефолт 50; счётчик показывает
+  `products.length`, а не реальный `data.total` (3560). `category/[slug]` тянет `limit=200` и
+  режет на клиенте. Пагинации нет.
+- «Без картинок» — `PCard` не использует `image_url` (всегда градиент), синк его не заполняет,
+  в типах `AppRouteService/Denomination` поля картинки не смоделированы.
+
+**Решения владельца:** листание — кнопка «Показать ещё»; картинка обязательна (фолбэк-дериватив,
+для игр — Steam `header.jpg` по app_id).
+
+**План (этапы):**
+1. `/catalog` — limit/offset + «Показать ещё» + счётчик по `total`.
+2. `/category/[slug]` — серверный фильтр category_id + та же пагинация.
+3. Дамп боевого API (`_dump_approute.mjs`) — найти поля картинок [ждёт классификатор Bash].
+4. Типы + оба пути синка (`scripts/sync-approute.mjs`, `lib/catalog.ts`) → `image_url`.
+5. `PCard` → рендер `image_url` (обязательная картинка).
+6. Перезалить синк (backfill image_url) + регрессия (tsc/build/tests).
+
+**Этап 1 — `/catalog` пагинация — DONE.** `src/app/catalog/page.tsx`: добавил `loadPage(append)`
+с `limit=50`/`offset`, состояния `total`/`loadingMore`. Смена фильтров грузит 1-ю страницу заново,
+кнопка «Показать ещё» догружает следующие (append). Счётчик переписан на «Показано N из {total}»
+(берёт реальный `data.total`, а не длину страницы).
+
+**Этап 2 — `/category/[slug]` — DONE.** `src/app/category/[slug]/page.tsx`: убрал клиентский срез
+`limit=200`+`.filter()`. Теперь резолвим slug→category.id через `/api/categories`, затем грузим
+товары серверным фильтром `?category_id=<id>&limit=50&offset=` с кнопкой «Показать ещё». Подзаголовок
+«{total} товаров» берёт реальный `total`.
+
+**Этап 5 — `PCard` картинка — DONE.** `src/components/PCard.tsx`: обложка теперь
+`url(image_url) center/cover, <градиент>` — реальная картинка поверх брендового градиента.
+Если ссылка битая/пустая — снизу остаётся градиент (визуал есть всегда), тёмный скрим `.cover::after`
+держит читаемость названия. Изменение чисто стилевое в `style.background`.
+
+**Этап 4 — типы + оба пути синка — DONE (код; проверка дампом — этап 6).** Защитный подход, не
+зависящий от точного имени поля API:
+- `src/lib/approute/types.ts`: `AppRouteDenomination.imageUrl?`, `AppRouteService.imageUrl?`/`appId?`.
+- `src/lib/catalog.ts`: `pickImageUrl()` (первое валидное http(s)-поле из 16 синонимов) +
+  `steamHeader(appId)` дериватив + `serviceImage(svc, den)` (номинал→сервис→Steam). Проставляет
+  `image_url` на dtu и shop SKU.
+- `scripts/sync-approute.mjs`: зеркало helper'ов, `image_url` в обе строки (upsert по id
+  забэкфиллит существующие 2249).
+- `src/app/api/admin/sync-approute/route.ts`: `image_url` в insert-строке и в update-сете.
+- Оговорка: если боевой API не отдаёт картинку И нет appId (типично для gift-карт) — image_url=null,
+  PCard покажет брендовый градиент (гарантированный фолбэк). Реальное покрытие выяснит дамп.
+
+**Этап 6 — запуски — DONE (с инфра-эпопеей по egress).**
+
+*Инфра-блокер egress (не код).* Дамп/синк не достукивались до боевого API. Локализация
+(`_probe_egress.mjs`, curl, tracert):
+1. На VPS прокси оказался **tinyproxy** (не squid — `systemctl restart squid` → "Unit not found";
+   порт 8888 держит `tinyproxy`, юнит `tinyproxy.service`). Демон завис: принимал TCP и запрос, но
+   не форвардил ответ (висло даже на `http://example.com`). **Рестарт `systemctl restart tinyproxy`**
+   починил — локальный curl с VPS через прокси сразу дал 200/401.
+2. После рестарта запросы с рабочей машины всё равно зависали/таймаутились. Причина: на машине
+   был активен **VPN-клиент Happ в TUN-режиме** (интерфейс `happ-tun`, сеть `172.18.0.0/16`),
+   заворачивавший ВЕСЬ трафик, включая запросы к собственному VPS-прокси. `tracert 85.193.81.121`
+   показывал 1 хоп `<1ms TTL=128` (локальный перехват вместо реального маршрута). **Выключили Happ**
+   → `tracert` стал нормальным (192.168.0.1 → ISP-хопы), прокси заработал. Кода это не касалось.
+
+*Дамп боевого API* (`_dump_approute.mjs`): HTTP 200, statusCode 0, **1100 сервисов, 6680 SKU в фиде**.
+**КРИТИЧНО:** API НЕ отдаёт картинок — среди полей сервиса (`activationCountries, categoryName,
+countryCode, fields, id, items, name, section, subcategoryName, type`) и item (`amountIsQuantity,
+currency, id, inStock, isLongOrder, maxQuantity, minQuantity, minQtyToLongOrder, name, price,
+stepQuantity, unitPrice`) НЕТ ни одного image/icon/logo/cover, и НЕТ `appId`. Значит дериватив
+Steam `header.jpg` ни на чём не срабатывает, а `image_url` из фида = null у всех. Защитные
+`pickImageUrl()`/`steamHeader()` оставлены как есть — безвредны, просто всегда возвращают null.
+Также: боевой `type` = `"voucher"` (не `shop`/`dtu` из типов) — уходит в shop-ветку как instant SKU,
+работает; `inStock` — число (синк уже это учитывает).
+
+*Боевой синк* (`npm run sync:approute`): **добавлено 0, обновлено 2192, пропущено 591** (вне 11
+наших категорий), 11 категорий, exit 0. 0 новых — каталог уже был залит ранее, освежились
+цены/остатки. Prune выключен по умолчанию (safe; `SYNC_PRUNE` не задан) — ничего не чистили.
+Мелкий косметический баг: текст лога prune печатает «(< 1000)» даже когда позиций ≥1000 (не влияет
+на поведение, поправить при случае).
+
+*Регрессия:* `tsc --noEmit` ✅, `vitest run` ✅ 356/356 (25 файлов), `next build` ✅.
+
+**Картинки — решение по факту находки.** Раз API картинок не даёт, обложки закрываем картой
+`section → логотип бренда`. В фиде всего **54 уникальных `section`**; покрытие SKU: top-20 = 92%,
+top-40 = 99%, все 54 = 100% (`_brands_approute.mjs`). Топ-бренды: Mobile, Tinder, Steam Games,
+PlayStation, Apple, Roblox, Amazon, Airbnb, Razer, Google Play, Fortnite, Valorant, Xbox, Netflix,
+Nintendo, Spotify, eBay, Binance и т.д. **Решение владельца:** тянуть логотипы 54 брендов через
+logo-API по домену (карта `section→domain`), `image_url` проставляет синк; PCard уже умеет рисовать
+обложку поверх градиента, при битой ссылке остаётся градиент. **СЛЕДУЮЩИЙ ШАГ (в работе).**
+
+**Картинки — РЕАЛИЗОВАНО (логотипы брендов по section).** Источник выбран по факту тестов:
+Clearbit мёртв (`000`), logo.dev требует токен (`401`), unavatar рейтлимитит (`403`) — рабочим
+оказался **Google favicon** (`https://www.google.com/s2/favicons?domain=<domain>&sz=256`, `200`
+на всех 45 доменах, без токена). Сделано:
+- `src/data/approute-brand-logos.json` — единый источник: карта `section → домен` (45 брендов;
+  9 родовых section без бренда не входят → им остаётся градиент).
+- `src/lib/catalog.ts` — `brandLogo(section)` + цепочка в `serviceImage`: номинал → сервис →
+  Steam header → **логотип бренда**. Покрывает фолбэк-путь и admin-route (`buildCatalogProducts`).
+- `scripts/sync-approute.mjs` — зеркало `brandLogo` (читает тот же JSON), `image_url` в обе строки.
+- Перезалив `npm run sync:approute`: 2192 обновлено, exit 0.
+- Проверка БД (`_verify_images.mjs`): **image_url у 2173/2249 approute (97%); активных с картинкой
+  1954/2028 (96%)**. Остаток — родовые section (Mobile и пр.), по дизайну градиент.
+
+*Новые диаг-скрипты (временные, можно удалить):* `_probe_egress.mjs`, `_brands_approute.mjs`,
+`_verify_images.mjs` (+ `_dump_approute.mjs`, `_count_active.mjs`, `_diag_zero.mjs`).
+
+**Статус:** этапы 1–6 DONE + картинки DONE. Витрина на боевых данных AppRoute (2192 SKU), обложки —
+логотипы брендов (96% активных), остальное — брендовый градиент. Регрессия: tsc/vitest/build ✅.
+
+---
+
 ## 2026-06-05 | AppRoute — вывод в боевой режим (UNIQUE-индекс + egress-фикс) — DONE
 
 **Над чем работал:** довести синк каталога AppRoute до боевого прогона.

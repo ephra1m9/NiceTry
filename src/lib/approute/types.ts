@@ -66,6 +66,11 @@ export interface AppRouteDenomination {
   minQtyToLongOrder?: number
   /** Код региона аккаунта (например PSN: US/PL/DE/FR/TR/IN/UK), если товар региональный. */
   region?: string
+  /**
+   * URL обложки номинала, если поставщик его отдаёт. Точное имя поля в боевом API уточняется
+   * дампом (scripts/_dump_approute.mjs); извлечение устойчиво к синонимам через pickImageUrl().
+   */
+  imageUrl?: string
 }
 
 export interface AppRouteService {
@@ -83,6 +88,10 @@ export interface AppRouteService {
   fields?: AppRouteFieldDef[]
   minAmountUsd?: number
   maxAmountUsd?: number
+  /** URL обложки/иконки сервиса, если поставщик его отдаёт (см. pickImageUrl / дамп API). */
+  imageUrl?: string
+  /** Steam appId, если сервис привязан к игре Steam — для дериватива обложки header.jpg. */
+  appId?: number
   /**
    * Коды регионов для региональных товаров (например PSN: US/PL/DE/FR/TR/IN/UK).
    * Если задано, каждый номинал разворачивается в отдельный SKU на каждый регион

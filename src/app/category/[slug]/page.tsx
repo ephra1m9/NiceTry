@@ -8,37 +8,48 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
 
+const PAGE_SIZE = 50
+
 export default function CategoryPage() {
   const params = useParams()
   const slug = params.slug as string
 
   const [category, setCategory] = useState<Category | null>(null)
   const [products, setProducts] = useState<Product[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  // Догрузка товаров категории серверным фильтром (category_id), а не клиентским срезом.
+  function loadMore(categoryId: string, append: boolean) {
+    const offset = append ? products.length : 0
+    if (append) setLoadingMore(true)
+    fetch(`/api/products?category_id=${encodeURIComponent(categoryId)}&limit=${PAGE_SIZE}&offset=${offset}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const page: Product[] = data.products || []
+        setProducts((prev) => (append ? [...prev, ...page] : page))
+        setTotal(typeof data.total === 'number' ? data.total : page.length)
+      })
+      .catch((err) => console.error('Failed to load category products:', err))
+      .finally(() => setLoadingMore(false))
+  }
 
   useEffect(() => {
     if (!slug) return
     setLoading(true)
-    Promise.all([
-      fetch('/api/categories').then((res) => res.json()),
-      fetch('/api/products?limit=200').then((res) => res.json()),
-    ])
-      .then(([categoriesData, productsData]) => {
-        const foundCategory = categoriesData.categories?.find((c: Category) => c.slug === slug)
-        setCategory(foundCategory || null)
-        if (foundCategory) {
-          const filteredProducts = productsData.products?.filter(
-            (p: Product) => p.category_id === foundCategory.id
-          )
-          setProducts(filteredProducts || [])
-        }
-        setLoading(false)
+    setProducts([])
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((categoriesData) => {
+        const foundCategory =
+          categoriesData.categories?.find((c: Category) => c.slug === slug) || null
+        setCategory(foundCategory)
+        if (foundCategory) loadMore(foundCategory.id, false)
       })
-      .catch((err) => {
-        console.error('Failed to load category:', err)
-        setLoading(false)
-      })
-  }, [slug])
+      .catch((err) => console.error('Failed to load category:', err))
+      .finally(() => setLoading(false))
+  }, [slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -85,7 +96,7 @@ export default function CategoryPage() {
         <div className="min-w-0">
           <h1 className="truncate">{category.name}</h1>
           <p className="text-muted text-sm mt-0.5">
-            {products.length > 0 ? `${products.length} товаров` : 'Категория'}
+            {total > 0 ? `${total} товаров` : 'Категория'}
           </p>
         </div>
       </div>
@@ -103,11 +114,24 @@ export default function CategoryPage() {
           <Link href="/catalog" className="btn btn-secondary mt-1">Посмотреть все товары</Link>
         </div>
       ) : (
-        <div className="prod-grid">
-          {products.map((product) => (
-            <PCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          <div className="prod-grid">
+            {products.map((product) => (
+              <PCard key={product.id} product={product} />
+            ))}
+          </div>
+          {category && products.length < total && (
+            <div className="flex justify-center mt-6 sm:mt-8">
+              <button
+                className="btn btn-secondary"
+                onClick={() => loadMore(category.id, true)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Загрузка…' : 'Показать ещё'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

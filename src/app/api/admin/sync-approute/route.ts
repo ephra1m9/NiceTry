@@ -83,6 +83,7 @@ export async function POST() {
         min_amount: p.min_amount ?? null,
         max_amount: p.max_amount ?? null,
         supplier_fields: p.supplier_fields ?? null,
+        image_url: p.image_url ?? null,
         sort_order: sort++,
       }
 
@@ -112,6 +113,7 @@ export async function POST() {
             min_amount: row.min_amount,
             max_amount: row.max_amount,
             supplier_fields: row.supplier_fields,
+            image_url: row.image_url,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingId)
