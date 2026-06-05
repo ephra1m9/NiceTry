@@ -64,6 +64,7 @@ export async function POST() {
     const products = (await buildCatalogProducts()).filter((p) => p.supplier === 'approute')
     let imported = 0
     let updated = 0
+    let failed = 0
     let sort = 0
     for (const p of products) {
       const categoryId = slugToId.get(p.category_id) || slugToId.get(p.category?.slug || '')
@@ -103,7 +104,7 @@ export async function POST() {
       if (existingId) {
         // Цена «поверх поставщика» управляется в админке — при ре-импорте не перетираем price,
         // обновляем только поставщицкие поля и наличие (как в /api/products/import).
-        await supabase
+        const { error } = await supabase
           .from('products')
           .update({
             name: row.name,
@@ -117,19 +118,31 @@ export async function POST() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingId)
-        updated++
+        // Не глотаем ошибку записи: иначе синк отрапортует success при реальном провале.
+        if (error) {
+          failed++
+          console.error('[sync-approute] update failed', existingId, error.message)
+        } else {
+          updated++
+        }
       } else {
-        await supabase.from('products').insert(row)
-        imported++
+        const { error } = await supabase.from('products').insert(row)
+        if (error) {
+          failed++
+          console.error('[sync-approute] insert failed', row.name, error.message)
+        } else {
+          imported++
+        }
       }
     }
 
     return NextResponse.json({
-      success: true,
+      success: failed === 0,
       supplier: 'approute',
       categories: categories.length,
       imported,
       updated,
+      failed,
       total: products.length,
     })
   } catch (error: any) {

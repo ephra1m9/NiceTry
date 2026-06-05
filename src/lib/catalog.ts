@@ -133,6 +133,11 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
       for (const region of regions) {
         const denomId = region ? `${den.id}_${region.toLowerCase()}` : den.id
         const nameSuffix = region ? ` (${region})` : ''
+        // Боевой API отдаёт inStock числом (остаток), мок — boolean. Нормализуем к числу,
+        // чтобы stock = реальный остаток, а is_active был корректным boolean (а не числом —
+        // иначе в boolean-колонку БД через admin-роут синка пишется число). Зеркало логики
+        // scripts/sync-approute.mjs.
+        const stockNum = typeof den.inStock === 'number' ? den.inStock : den.inStock ? 100 : 0
         products.push({
           id: denomId,
           name: `${svc.name} — ${den.name}${nameSuffix}`,
@@ -141,8 +146,8 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
           category_id: cat.id,
           category: { name: cat.name, slug: cat.slug },
           price: priceRub(den.price, cat.usd_to_rub_rate, cat.markup_percent),
-          stock: den.inStock ? 100 : 0,
-          is_active: den.inStock,
+          stock: stockNum,
+          is_active: stockNum > 0,
           supplier: 'approute',
           supplier_id: svc.id,
           denomination_id: denomId,

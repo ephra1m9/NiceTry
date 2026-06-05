@@ -61,7 +61,11 @@ export interface AppRouteDenomination {
   nominal?: string
   price: number // USD
   currency: string // обычно "USD"
-  inStock: boolean
+  /**
+   * Наличие. ВАЖНО: боевой API отдаёт ЧИСЛО (остаток на складе), а моки — boolean.
+   * Потребители обязаны обрабатывать оба варианта (см. catalog.ts / sync-approute.mjs).
+   */
+  inStock: number | boolean
   isLongOrder?: boolean
   minQtyToLongOrder?: number
   /** Код региона аккаунта (например PSN: US/PL/DE/FR/TR/IN/UK), если товар региональный. */
@@ -76,7 +80,11 @@ export interface AppRouteDenomination {
 export interface AppRouteService {
   id: string
   name: string
-  type: 'shop' | 'dtu'
+  /**
+   * Тип сервиса. shop/voucher → мгновенные ваучеры (instant), dtu → прямое пополнение (topup).
+   * Боевой API отдаёт "voucher"; всё, что не "dtu", обрабатывается как shop (см. catalog.ts).
+   */
+  type: 'shop' | 'dtu' | 'voucher'
   countryCode?: string
   section?: string
   categoryName?: string

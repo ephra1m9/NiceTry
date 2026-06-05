@@ -381,6 +381,8 @@ async function run() {
       pruned += part.length
       console.log(`  - удалено сирот ${pruned}/${orphanIds.length}`)
     }
+  } else if (isLive && !PRUNE_MODE) {
+    console.log('Prune не запрошен (SYNC_PRUNE не задан) — сироты не удаляются (обычный безопасный синк)')
   } else if (isLive) {
     console.log(`Prune пропущен: в фиде только ${rows.length} позиций (< ${MIN_FOR_PRUNE}), не рискуем чистить`)
   }

@@ -22,11 +22,15 @@ export default function ProductPage() {
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [customAmount, setCustomAmount] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  // Обложка-логотип (Google favicon) может не загрузиться для части доменов — тогда
+  // показываем брендовый градиент вместо битой картинки (как фолбэк в PCard).
+  const [imgError, setImgError] = useState(false)
 
   const { addToCart } = useCart()
 
   useEffect(() => {
     if (!productId) return
+    setImgError(false) // сброс фолбэка обложки при переходе на другой товар
     fetch(`/api/products/${productId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -136,8 +140,13 @@ export default function ProductPage() {
         {/* Обложка товара */}
         <div className="card overflow-hidden lg:sticky lg:top-24">
           <div className="relative aspect-[4/3] flex items-end p-5 overflow-hidden">
-            {product.image_url ? (
-              <img src={product.image_url} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+            {product.image_url && !imgError ? (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                onError={() => setImgError(true)}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             ) : (
               <div
                 className="absolute inset-0"
