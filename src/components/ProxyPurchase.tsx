@@ -95,7 +95,7 @@ function endDate(p: BoughtProxy): string {
   return p.dateEnd || p.date_end || ''
 }
 
-export default function ProxyPurchase() {
+export default function ProxyPurchase({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter()
 
   const [config, setConfig] = useState<ProxyConfig | null>(null)
@@ -274,20 +274,22 @@ export default function ProxyPurchase() {
   if (configError && !config) return null
 
   return (
-    <section className="px6">
+    <section className={`px6${embedded ? ' px6--embedded' : ''}`}>
       <div className="px6-card">
-        <header className="px6-head">
-          <div className="px6-head-ic" aria-hidden>
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" />
-            </svg>
-          </div>
-          <div className="px6-head-txt">
-            <h2 className="px6-title">Купить прокси</h2>
-            <p className="px6-sub">IPv4 / IPv6 прокси под любую страну — выдача за секунды.</p>
-          </div>
-        </header>
+        {!embedded && (
+          <header className="px6-head">
+            <div className="px6-head-ic" aria-hidden>
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" />
+              </svg>
+            </div>
+            <div className="px6-head-txt">
+              <h2 className="px6-title">Купить прокси</h2>
+              <p className="px6-sub">IPv4 / IPv6 прокси под любую страну — выдача за секунды.</p>
+            </div>
+          </header>
+        )}
 
         {!config ? (
           <div className="px6-skel">
@@ -478,6 +480,10 @@ const PX6_CSS = `
   .px6 { margin: 0 0 30px; }
   .px6-card { background: var(--surface, #fff); border: 1px solid var(--border, #e6eaf0);
     border-radius: 16px; padding: 22px; }
+
+  /* В модалке шапку/рамку/отступ даёт само окно — карточка становится «прозрачной». */
+  .px6--embedded { margin: 0; }
+  .px6--embedded .px6-card { border: none; border-radius: 0; padding: 0; background: transparent; }
 
   .px6-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
   .px6-head-ic { flex: none; width: 46px; height: 46px; border-radius: 12px;

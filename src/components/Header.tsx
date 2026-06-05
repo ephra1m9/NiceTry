@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/useUser'
 import { useCart } from '@/hooks/useCart'
 import { useTelegram } from '@/hooks/useTelegram'
 import { LEGAL_LINKS } from '@/components/Footer'
+import ProxyPurchase from '@/components/ProxyPurchase'
 
 /**
  * Шапка сайта по эталону index.html:
@@ -28,6 +29,9 @@ const CATNAV = [
   { label: 'Популярное', icon: '<path d="M12 3l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z"/>', href: '/catalog?group=popular' },
 ]
 
+// Иконка категории «Купить прокси» (глобус) — открывает окно покупки, а не ссылку.
+const PROXY_ICON = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>'
+
 function initials(email?: string): string {
   if (!email) return 'NT'
   const name = email.split('@')[0]
@@ -44,6 +48,10 @@ export default function Header() {
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  // Окно покупки прокси (открывается из catnav/drawer). proxyEnabled — флаг из админки:
+  // пункт показываем только когда покупка прокси включена (proxy_settings.is_enabled).
+  const [proxyOpen, setProxyOpen] = useState(false)
+  const [proxyEnabled, setProxyEnabled] = useState(false)
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +70,32 @@ export default function Header() {
       window.removeEventListener('keydown', onKey)
     }
   }, [menuOpen])
+
+  // Узнаём, включена ли покупка прокси (proxy_settings.is_enabled) — иначе пункт скрыт.
+  useEffect(() => {
+    fetch('/api/proxy/config')
+      .then((r) => r.json())
+      .then((c) => setProxyEnabled(c?.enabled === true))
+      .catch(() => {})
+  }, [])
+
+  // Блокируем фон и вешаем Esc, пока открыто окно покупки прокси.
+  useEffect(() => {
+    if (!proxyOpen) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setProxyOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [proxyOpen])
+
+  // Открыть окно покупки прокси (и закрыть drawer, если открыт).
+  const openProxy = () => {
+    setMenuOpen(false)
+    setProxyOpen(true)
+  }
 
   const go = (href: string) => {
     setMenuOpen(false)
@@ -246,6 +280,12 @@ export default function Header() {
               </svg>
               Скидки
             </Link>
+            {proxyEnabled && (
+              <button type="button" onClick={openProxy} title="Купить прокси">
+                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: PROXY_ICON }} />
+                Купить прокси
+              </button>
+            )}
             {user?.is_admin && (
               <Link href="/admin" style={{ marginLeft: 'auto', color: 'var(--blue-700)' }}>
                 <svg className="ic" viewBox="0 0 24 24">
@@ -303,6 +343,12 @@ export default function Header() {
             )}
 
             <nav className="drawer-nav">
+              {proxyEnabled && (
+                <button className="drawer-proxy" onClick={openProxy}>
+                  <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: PROXY_ICON }} />
+                  Купить прокси
+                </button>
+              )}
               <button onClick={() => go('/catalog')}>
                 <svg className="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                 Все категории
@@ -359,6 +405,34 @@ export default function Header() {
             </nav>
           </div>
         </>
+      )}
+
+      {/* Окно покупки прокси — открывается из catnav (десктоп) и из верха drawer (мобайл). */}
+      {proxyOpen && (
+        <div
+          className="proxy-modal-overlay"
+          onClick={() => setProxyOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Купить прокси"
+        >
+          <div className="proxy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="proxy-modal-head">
+              <div className="proxy-modal-title">
+                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: PROXY_ICON }} />
+                Купить прокси
+              </div>
+              <button className="iconbtn" aria-label="Закрыть" onClick={() => setProxyOpen(false)}>
+                <svg className="ic" viewBox="0 0 24 24">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+            <div className="proxy-modal-body">
+              <ProxyPurchase embedded />
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

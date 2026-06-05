@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Product, Category } from '@/types'
 import { PCard } from '@/components/PCard'
-import ProxyPurchase from '@/components/ProxyPurchase'
 
 /**
  * Главная страница — витрина по эталону index.html (#view-home):
@@ -187,10 +186,6 @@ export default function HomePage() {
         <span className="btn btn-primary sgc-cta">Отправить</span>
       </Link>
       )}
-
-      {/* Блок «Купить прокси» (px6) — боевая покупка прямо на главной.
-          Сам себя скрывает, если покупка прокси выключена в админке (proxy_settings.is_enabled). */}
-      <ProxyPurchase />
 
       {/* Плитки категорий */}
       {categories.length > 0 && (

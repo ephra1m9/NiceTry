@@ -1267,6 +1267,67 @@
   .drawer-sep {
     @apply my-2 border-t border-border-2;
   }
+  /* Выделенный пункт «Купить прокси» вверху drawer (мобайл). */
+  .drawer-nav .drawer-proxy {
+    @apply text-blue-700;
+    background: var(--blue-50);
+  }
+  .drawer-nav .drawer-proxy .ic {
+    color: var(--blue-700);
+  }
+  .drawer-nav .drawer-proxy:hover {
+    background: var(--blue-100);
+  }
+}
+
+/* ===== Окно покупки прокси (модалка из шапки) ===== */
+@layer components {
+  .proxy-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 32, 46, 0.5);
+    z-index: 120;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    animation: nt-fade 0.18s ease;
+  }
+  .proxy-modal {
+    width: min(640px, 100%);
+    margin: auto;
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: nt-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .proxy-modal-head {
+    @apply flex items-center justify-between px-5 h-[58px] border-b border-border flex-none;
+  }
+  .proxy-modal-title {
+    @apply flex items-center gap-2.5 text-[17px] font-extrabold text-navy;
+  }
+  .proxy-modal-title .ic {
+    width: 20px;
+    height: 20px;
+    color: var(--blue);
+  }
+  .proxy-modal-body {
+    @apply p-5;
+  }
+}
+
+@keyframes nt-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes nt-slide-in {
