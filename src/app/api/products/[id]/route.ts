@@ -26,7 +26,13 @@ export async function GET(
       return fallbackProduct(id)
     }
 
-    if (product.type === 'instant') {
+    // Остаток instant-товара считаем по product_keys ТОЛЬКО для локальных ключей.
+    // Supplier-товары (approute/dessly) ключей в product_keys не держат: approute выдаёт
+    // ваучеры вживую (createShopOrder→unhideVouchers), dessly шлёт гифт. Их остаток
+    // синхронизируется в колонку products.stock (approute: inStock от поставщика) — её и
+    // оставляем. Иначе count=0 ложно показывал «нет в наличии», расходясь со списком
+    // /api/products (который отдаёт products.stock как есть).
+    if (product.type === 'instant' && product.supplier !== 'approute' && product.supplier !== 'dessly') {
       const { count } = await supabase
         .from('product_keys')
         .select('*', { count: 'exact', head: true })
