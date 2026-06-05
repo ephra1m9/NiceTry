@@ -9,6 +9,7 @@ export type PaymentMethod = 'balance' | 'card' | 'crypto'
 export interface User {
   id: string
   email: string
+  nickname?: string | null
   telegram_id?: string
   balance: number
   status: UserStatus

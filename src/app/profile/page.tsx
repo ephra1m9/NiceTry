@@ -63,7 +63,8 @@ export default function ProfilePage() {
           {initials(user.email)}
         </span>
         <div className="min-w-0">
-          <h1 className="truncate">{user.email}</h1>
+          <h1 className="truncate">{user.nickname || user.email}</h1>
+          {user.nickname && <p className="text-sm text-muted truncate">{user.email}</p>}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <Badge variant="amber">{user.status?.name || 'Bronze'}</Badge>
             {user.status?.discount_percent > 0 && (
@@ -90,6 +91,14 @@ export default function ProfilePage() {
         <Card>
           <h2 className="mb-4">Основная информация</h2>
           <dl className="divide-y divide-border-2">
+            <div className="flex items-center justify-between py-2.5 gap-3">
+              <dt className="text-sm text-muted">Никнейм</dt>
+              <dd className="font-medium text-navy truncate">
+                {user.nickname || (
+                  <a href="/auth/login?step=nickname" className="text-blue-700">Выбрать ник</a>
+                )}
+              </dd>
+            </div>
             <div className="flex items-center justify-between py-2.5 gap-3">
               <dt className="text-sm text-muted">Email</dt>
               <dd className="font-medium text-navy truncate">{user.email}</dd>
