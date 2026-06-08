@@ -13,6 +13,8 @@ export interface PaymentRow {
   status: string
   hold: number
   email: string | null
+  /** Ссылка на хостовую страницу оплаты pay4game (ответ payment/create). */
+  url: string | null
   qr_content: string | null
   qr_img: string | null
   agent_transaction_id: string | null
@@ -29,25 +31,32 @@ export async function upsertPaymentOnCreate(row: {
   method: string
   amount: number
   email: string
+  url?: string | null
   agent_transaction_id?: string | null
   steam_account?: string | null
   steam_amount?: number | null
 }): Promise<void> {
-  const { error } = await supabaseAdmin.from('payments').upsert(
-    {
-      invoice_id: row.invoice_id,
-      uuid: row.uuid,
-      method: row.method,
-      amount: row.amount,
-      email: row.email,
-      status: 'pending',
-      hold: 0,
-      agent_transaction_id: row.agent_transaction_id ?? null,
-      steam_account: row.steam_account ?? null,
-      steam_amount: row.steam_amount ?? null,
-    },
-    { onConflict: 'invoice_id' }
-  )
+  const base = {
+    invoice_id: row.invoice_id,
+    uuid: row.uuid,
+    method: row.method,
+    amount: row.amount,
+    email: row.email,
+    status: 'pending',
+    hold: 0,
+    agent_transaction_id: row.agent_transaction_id ?? null,
+    steam_account: row.steam_account ?? null,
+    steam_amount: row.steam_amount ?? null,
+  }
+  // Сначала пытаемся со ссылкой на оплату (колонка url). Если её ещё нет в БД (рассинхрон
+  // деплоя и миграции 2026-06-08_payments_url.sql) — повторяем без неё, платёж всё равно сохранится.
+  let { error } = await supabaseAdmin
+    .from('payments')
+    .upsert({ ...base, url: row.url ?? null }, { onConflict: 'invoice_id' })
+  if (error) {
+    console.warn('[payments/db] upsert с url упал, повтор без url:', error.message)
+    ;({ error } = await supabaseAdmin.from('payments').upsert(base, { onConflict: 'invoice_id' }))
+  }
   if (error) {
     console.error('[payments/db] upsertPaymentOnCreate failed:', error)
     throw new Error('Не удалось сохранить платёж')

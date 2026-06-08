@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
     hold: Number(payment.hold),
     qr_content: payment.qr_content,
     qr_img: payment.qr_img,
+    // Ссылка на хостовую страницу оплаты pay4game — фолбэк-кнопка, когда QR (вебхук inform) ещё не пришёл.
+    url: payment.url ?? null,
     paid,
     order: order ? { id: order.id, status: order.status, has_owner: !!order.user_id } : null,
     email: order?.guest_email ?? payment.email ?? undefined,

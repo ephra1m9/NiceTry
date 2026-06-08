@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
         method: process.env.PAY4GAME_DEFAULT_METHOD || 'sbp',
         amount: charge,
         email,
+        url: payment.url ?? null,
         steam_account: account,
         steam_amount: steamAmount,
       })

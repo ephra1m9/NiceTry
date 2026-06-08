@@ -100,6 +100,22 @@
     кошелёк пополняет pay4game) и `status_steam` (статус зачисления Steam в payment row).
   - Тесты: `tests/unit/steam-topup.test.ts` — 14/14 PASS. Полная сюита `vitest` — 392/392 PASS.
     `npx tsc --noEmit` чисто. `npm run build` OK (роуты `/steam` и `/api/steam/topup` собрались).
+
+- **Этап 13 (фикс «вечного ожидания» на /pay)** — DONE.
+  - Симптом: при оплате Steam-пополнения страница `/pay` зависала на «Готовим платёж… / Ожидаем
+    подтверждение оплаты…». Причина: `/pay` показывает только QR из вебхука `inform`, а хостовую
+    ссылку оплаты pay4game (`url` из ответа `payment/create`) нигде не показывала — `PayClient`
+    проп `payUrl` не получал, в таблице `payments` колонки `url` не было. Для Steam-пополнения
+    QR-вебхук `inform` может не приходить → показывать было нечего.
+  - Фикс: храним `payments.url` и показываем кнопку «Перейти к оплате» сразу (фолбэк к QR).
+    - `migrations/2026-06-08_payments_url.sql`: `ADD COLUMN IF NOT EXISTS url TEXT` (идемпотентно). → Сергею.
+    - `db.ts`: `upsertPaymentOnCreate` принимает `url`, пишет его; устойчив к рассинхрону миграции
+      (если колонки нет — повтор upsert без `url`). `PaymentRow.url`.
+    - `/api/pay4game/status`: отдаёт `url`. `PayClient`: `hostedUrl = data.url || payUrl` → кнопка
+      «Перейти к оплате», когда QR ещё/не предусмотрен; текст «Нажмите кнопку, чтобы перейти к оплате».
+    - Роуты `steam/topup` и `checkout/guest`: прокидывают `url: payment.url` в `upsertPaymentOnCreate`.
+  - Полезно всем флоу (card/sberpay тоже): пользователь всегда имеет рабочую ссылку оплаты.
+  - `tsc` чисто, `vitest` 392/392, `npm run build` OK.
   - НАСТРОЙКА (Сергею): по желанию переопределить `STEAM_TOPUP_MIN/MAX/COMMISSION_PERCENT` в env.
     Боевой запуск — общий с pay4game: `PAYMENTS_MODE=live` + ключи (см. блок ниже). До этого `/steam`
     работает в ДЕМО (mock) — деньги не приняты, Steam не пополнен.

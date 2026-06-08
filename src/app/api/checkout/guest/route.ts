@@ -261,6 +261,7 @@ export async function POST(request: NextRequest) {
         method: process.env.PAY4GAME_DEFAULT_METHOD || 'sbp',
         amount: finalAmount,
         email,
+        url: payment.url ?? null,
       })
 
       // Токен нужен для finalize нового гостя после успешной оплаты (см. /pay).

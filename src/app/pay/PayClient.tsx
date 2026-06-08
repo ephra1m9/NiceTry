@@ -18,6 +18,7 @@ interface StatusResp {
   hold: number
   qr_content: string | null
   qr_img: string | null
+  url?: string | null
   paid: boolean
   order: { id: string; status: string; has_owner: boolean } | null
   email?: string
@@ -210,12 +211,20 @@ export default function PayClient({ invoiceId, payUrl }: { invoiceId: string; pa
   // Ожидание оплаты (pending).
   const qrImg = data?.qr_img
   const qrContent = data?.qr_content
+  // Хостовая страница оплаты pay4game: фолбэк-ссылка, когда QR (вебхук inform) ещё не пришёл
+  // или не предусмотрен для этого способа оплаты (напр. пополнение Steam). Берём из статуса либо из пропса.
+  const hostedUrl = data?.url || payUrl
+  const hasAction = !!(qrImg || qrContent || hostedUrl)
   return (
     <Shell>
       <div className="text-center mb-5">
         <h1 className="text-[22px]">Оплата заказа</h1>
         <p className="text-muted text-sm mt-1.5">
-          {qrImg || qrContent ? 'Отсканируйте QR или оплатите по ссылке' : 'Готовим платёж…'}
+          {qrImg || qrContent
+            ? 'Отсканируйте QR или оплатите по ссылке'
+            : hostedUrl
+              ? 'Нажмите кнопку, чтобы перейти к оплате'
+              : 'Готовим платёж…'}
         </p>
       </div>
 
@@ -242,8 +251,8 @@ export default function PayClient({ invoiceId, payUrl }: { invoiceId: string; pa
             Открыть оплату
           </a>
         )}
-        {!qrContent && payUrl && (
-          <a href={payUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg w-full">
+        {!qrContent && hostedUrl && (
+          <a href={hostedUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg w-full">
             Перейти к оплате
           </a>
         )}
