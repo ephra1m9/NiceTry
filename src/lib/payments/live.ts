@@ -27,6 +27,7 @@ export async function createLivePayment(input: PaymentOrderInput): Promise<Payme
         clientIp: input.clientIp,
         steamAccount: input.steamAccount,
         steamAmount: input.steamAmount,
+        risk: input.risk,
         description: input.description,
       },
       cfg

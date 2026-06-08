@@ -9,6 +9,7 @@ import {
   computeReferralBonus,
   isTopup,
   proportionalRefund,
+  computeRisk,
 } from '@/lib/order-math'
 import { REFERRAL_PERCENTS } from '@/lib/constants'
 
@@ -34,6 +35,24 @@ describe('proportionalRefund — возврат за непоставленны�
   })
   it('провалено больше суммы (защита) → весь финальный платёж', () => {
     expect(proportionalRefund(900, 1500, 1000)).toBe(900)
+  })
+})
+
+describe('computeRisk — уровень риска антифрода pay4game', () => {
+  it('все позиции topup_auto → risk=1', () => {
+    expect(computeRisk(['topup_auto'])).toBe(1)
+    expect(computeRisk(['topup_auto', 'topup_auto'])).toBe(1)
+  })
+  it('хотя бы один обычный товар → risk=5', () => {
+    expect(computeRisk(['topup_auto', 'instant'])).toBe(5)
+    expect(computeRisk(['instant'])).toBe(5)
+  })
+  it('topup_manual НЕ считается низкорисковым → risk=5', () => {
+    expect(computeRisk(['topup_manual'])).toBe(5)
+    expect(computeRisk(['topup_auto', 'topup_manual'])).toBe(5)
+  })
+  it('пустая корзина → risk=5 (консервативно)', () => {
+    expect(computeRisk([])).toBe(5)
   })
 })
 

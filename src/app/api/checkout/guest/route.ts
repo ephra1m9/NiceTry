@@ -9,11 +9,13 @@ import {
   promoDiscount,
   settleAmounts,
   isPromoApplicable,
+  computeRisk,
 } from '@/lib/order-math'
 import { normalizeEmail, isValidEmail } from '@/lib/auth/codes'
 import { createPayment, paymentsMode } from '@/lib/payments'
 import { upsertPaymentOnCreate } from '@/lib/payments/db'
 import { signCheckoutToken } from '@/lib/payments/token'
+import type { ProductType } from '@/types'
 
 /**
  * POST /api/checkout/guest — ГОСТЕВОЙ чекаут на ЗАГЛУШКЕ оплаты (PAYMENTS_MODE=mock).
@@ -235,12 +237,17 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
         request.headers.get('x-real-ip') ||
         undefined
+      // Уровень риска антифрода pay4game (1 — низкий … 5 — высокий): risk=1 только если ВСЕ
+      // позиции корзины — авто-пополнения (Steam/TG Stars), иначе 5. См. computeRisk.
+      const risk = computeRisk(lines.map((l) => l.product.type as ProductType))
+
       const payment = await createPayment({
         orderId: referenceId,
         orderNumber,
         amount: finalAmount,
         email,
         clientIp,
+        risk,
       })
       if (payment.status === 'failed' || !payment.uuid) {
         // Платёж не создан — заказ остаётся 'new' (не выдан), помечаем отменённым.

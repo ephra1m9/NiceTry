@@ -130,3 +130,14 @@ export function computeReferralBonus(
   }
   return Math.round(bonus)
 }
+
+/**
+ * Уровень риска антифрода pay4game для платежа по корзине: 1 (низкий) … 5 (высокий).
+ * Бизнес-правило: risk=1 ТОЛЬКО если ВСЕ позиции «низкорисковые» — авто-пополнения
+ * (тип 'topup_auto': пополнение Steam, TG Stars). Любой обычный товар в корзине → risk=5.
+ * Пустая корзина → 5 (консервативно). НЕ использует isTopup: topup_manual сюда НЕ входит.
+ */
+export function computeRisk(types: ProductType[]): 1 | 5 {
+  if (types.length === 0) return 5
+  return types.every((t) => t === 'topup_auto') ? 1 : 5
+}

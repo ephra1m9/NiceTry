@@ -196,7 +196,8 @@ export interface PaymentCreateInput {
   returnUrl?: string
   steamAccount?: string
   steamAmount?: number
-  risk?: 0 | 1
+  /** Уровень риска антифрода pay4game: 1 (низкий) … 5 (высокий). По умолчанию шлём 5. */
+  risk?: 1 | 2 | 3 | 4 | 5
   description?: string
 }
 

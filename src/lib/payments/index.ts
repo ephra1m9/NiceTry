@@ -29,6 +29,12 @@ export interface PaymentOrderInput {
   steamAccount?: string
   /** Сумма пополнения Steam (20–50000 ₽). */
   steamAmount?: number
+  /**
+   * Уровень риска антифрода pay4game: 1 (низкий) … 5 (высокий). По умолчанию (не задан) → 5.
+   * risk=1 — только если ВСЕ позиции корзины «низкорисковые» (тип товара topup_auto:
+   * авто-пополнения Steam/TG Stars). Любая обычная позиция в корзине поднимает risk до 5.
+   */
+  risk?: 1 | 2 | 3 | 4 | 5
   /** Описание платежа (по согласованию с админом pay4game). */
   description?: string
 }
