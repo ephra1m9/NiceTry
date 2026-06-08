@@ -11,7 +11,8 @@ import {
   isPromoApplicable,
 } from '@/lib/order-math'
 import { normalizeEmail, isValidEmail } from '@/lib/auth/codes'
-import { createPayment } from '@/lib/payments'
+import { createPayment, paymentsMode } from '@/lib/payments'
+import { upsertPaymentOnCreate } from '@/lib/payments/db'
 import { signCheckoutToken } from '@/lib/payments/token'
 
 /**
@@ -175,10 +176,93 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4) Оплата (mock → paid). Сначала номер заказа/референс для идемпотентности.
+    // 4) Оплата. Сначала номер заказа/референс для идемпотентности.
     const referenceId = randomUUID()
     const orderNumber = `NT-${Date.now().toString(36).toUpperCase()}-${referenceId.slice(0, 4).toUpperCase()}`
 
+    // ——— БОЕВОЙ режим (PAYMENTS_MODE=live): платёж асинхронный ———
+    // Заказ создаём в статусе 'new' (pending), позиции — без кода (delivery_status='pending').
+    // Деньги принимает pay4game; ВЫДАЧА произойдёт в вебхуке status (success && hold=0).
+    if (paymentsMode() === 'live') {
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          user_id: ownerUserId,
+          guest_email: email,
+          total_amount: totalAmount,
+          discount_amount: discountAmount,
+          final_amount: finalAmount,
+          status: 'new',
+          payment_method: 'card',
+          promo_code_id: promoCodeId,
+          supplier_reference_id: referenceId,
+        })
+        .select()
+        .single()
+      if (orderError || !order) {
+        console.error('[checkout/guest] (live) order insert failed:', orderError)
+        return NextResponse.json({ error: 'Ошибка создания заказа' }, { status: 500 })
+      }
+
+      // Позиции — в обработке, код выдаст вебхук при успешной оплате.
+      for (const line of lines) {
+        const pid = String(line.product.id ?? '')
+        const pname = String(line.product.name ?? '')
+        await supabaseAdmin.from('order_items').insert({
+          order_id: order.id,
+          product_id: isUuid(pid) ? pid : null,
+          product_name: pname,
+          quantity: line.quantity,
+          price: line.linePrice,
+          delivery_status: 'pending',
+        })
+      }
+
+      // Создаём платёж в pay4game. invoice_id = referenceId.
+      const clientIp =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        undefined
+      const payment = await createPayment({
+        orderId: referenceId,
+        orderNumber,
+        amount: finalAmount,
+        email,
+        clientIp,
+      })
+      if (payment.status === 'failed' || !payment.uuid) {
+        // Платёж не создан — заказ остаётся 'new' (не выдан), помечаем отменённым.
+        await supabaseAdmin.from('orders').update({ status: 'cancelled' }).eq('id', order.id)
+        return NextResponse.json({ error: payment.error || 'Не удалось создать платёж' }, { status: 402 })
+      }
+
+      await upsertPaymentOnCreate({
+        invoice_id: referenceId,
+        uuid: payment.uuid,
+        method: process.env.PAY4GAME_DEFAULT_METHOD || 'sbp',
+        amount: finalAmount,
+        email,
+      })
+
+      // Токен нужен для finalize нового гостя после успешной оплаты (см. /pay).
+      const token = flow === 'nickname' ? signCheckoutToken(order.id, email) : undefined
+      return NextResponse.json({
+        success: true,
+        mode: 'live',
+        demo: false,
+        flow,
+        email,
+        order: { id: order.id, order_number: orderNumber, status: 'new' as const },
+        invoice_id: referenceId,
+        uuid: payment.uuid,
+        url: payment.url, // для card/sberpay — открыть в НОВОЙ вкладке (не iframe)
+        pay_url: `/pay/${referenceId}`,
+        ...(token ? { token } : {}),
+      })
+    }
+
+    // ——— ДЕМО режим (PAYMENTS_MODE=mock): синхронная «оплата» ———
     const payment = await createPayment({
       orderId: referenceId,
       orderNumber,

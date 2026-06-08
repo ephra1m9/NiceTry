@@ -137,6 +137,11 @@ export default function CheckoutPage() {
         return
       }
       clearCart()
+      // БОЕВОЙ режим: платёж асинхронный — переходим на страницу ожидания оплаты (QR/ссылка).
+      if (data.mode === 'live' && data.pay_url) {
+        router.push(data.pay_url)
+        return
+      }
       if (data.flow === 'session') {
         // Сессия активна — заказ уже в аккаунте, ник не нужен.
         router.push(`/orders/${data.order.id}`)

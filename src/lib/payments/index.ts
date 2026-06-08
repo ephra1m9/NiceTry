@@ -21,18 +21,41 @@ export interface PaymentOrderInput {
   amount: number
   /** Почта плательщика (для чека/привязки). */
   email: string
+  /** IP клиента — обязателен для sbp + sbp_type=qr (live). */
+  clientIp?: string
+  /** Способ оплаты pay4game (sbp|card|sberpay|tpay|cardkz|carduz|uzum). По умолчанию из env. */
+  method?: string
+  /** Логин Steam — включает ветку пополнения Steam одним платежом (вебхук status_steam). */
+  steamAccount?: string
+  /** Сумма пополнения Steam (20–50000 ₽). */
+  steamAmount?: number
+  /** Описание платежа (по согласованию с админом pay4game). */
+  description?: string
 }
 
-/** Результат попытки оплаты. Единый для mock и live — поток после оплаты одинаков. */
+/**
+ * Результат попытки оплаты. Единый для mock и live.
+ *   mock — сразу status='paid' (деньги не приняты, demo=true).
+ *   live — status='pending': платёж СОЗДАН в pay4game, но НЕ подтверждён. Финальный 'paid'
+ *          приходит ТОЛЬКО из вебхука status (success && hold=0). uuid/url/qr* — для страницы оплаты.
+ */
 export interface PaymentResult {
-  status: 'paid' | 'failed'
-  /** ID платежа у провайдера (в mock — синтетический mock_*). */
+  status: 'paid' | 'failed' | 'pending'
+  /** ID платежа у провайдера (в mock — синтетический mock_*; в live — uuid pay4game). */
   paymentId: string
   mode: PaymentsMode
   /** true → это ДЕМО-оплата (mock), деньги не приняты. Используется для пометок в UI/заказе. */
   demo: boolean
   /** Человекочитаемая причина при status='failed'. */
   error?: string
+  /** live: uuid платежа pay4game. */
+  uuid?: string
+  /** live: URL страницы оплаты pay4game (для card/sberpay — открывать в НОВОЙ вкладке, не в iframe). */
+  url?: string
+  /** live (sbp+qr): диплинк QR — придёт позже в вебхуке inform, не в ответе create. */
+  qrContent?: string
+  /** live (sbp+qr): QR-картинка (base64) — придёт в вебхуке inform. */
+  qrImg?: string
 }
 
 /** Текущий режим оплаты из env (по умолчанию mock — безопасно для незаведённого шлюза). */
