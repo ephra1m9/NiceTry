@@ -4,12 +4,17 @@
 // создании платежа. Идемпотентно: переход выполняется только из статуса 'new' → 'paid',
 // повторные вебхуки/ретраи ничего не дублируют.
 //
-// ОБЛАСТЬ: как и гостевой mock-чекаут, эта выдача НЕ дёргает поставщиков (AppRoute/Dessly) —
-// заказ помечается оплаченным, позиции получают код. Реальное исполнение через поставщиков —
-// отдельный слой (см. /api/orders/create) и в задачу платёжной интеграции не входит.
+// ОБЛАСТЬ: instant-товары выдаются РЕАЛЬНО через общий deliverInstant (тот же модуль, что и
+// /api/orders/create) — AppRoute (shop), Dessly (gift) или локальные ключи из product_keys.
+// topup_auto/topup_manual/manual и позиции без product_id остаются 'pending' (закрывает менеджер).
+//
+// УСТОЙЧИВОСТЬ: сбой/задержка поставщика в выдаче НЕ выбрасывает исключение — иначе заказ уже
+// 'paid', вебхук вернул бы 5xx, а ретрай увидел бы статус 'paid' и пропустил выдачу. Вместо этого
+// непоставленная позиция остаётся 'pending', заказ — 'paid' (в работе), вебхук отвечает 200.
 
-import { randomBytes } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { deliverInstant, DeliveryPendingError } from '@/lib/delivery'
+import type { Product } from '@/types'
 
 export interface DeliverResult {
   delivered: boolean
@@ -54,20 +59,63 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
     return { delivered: false, alreadyDelivered: true, orderId: order.id }
   }
 
-  // Выдаём позиции, которым ещё не выдан код.
+  // Выдаём позиции, которым ещё не выдан код. Только instant выдаётся автоматически
+  // (AppRoute/Dessly/локальные ключи через deliverInstant). topup_*/manual и позиции без
+  // product_id остаются 'pending' (закрывает менеджер). Заказ доводим до 'delivered' только
+  // если ВСЕ позиции выданы; иначе оставляем 'paid' (в работе).
   const { data: items } = await supabaseAdmin
     .from('order_items')
-    .select('id, voucher_code, delivery_status')
+    .select('id, product_id, quantity, voucher_code, delivery_status')
     .eq('order_id', order.id)
+
+  let allDelivered = true
   for (const it of items ?? []) {
     if (it.delivery_status === 'delivered' && it.voucher_code) continue
-    await supabaseAdmin
-      .from('order_items')
-      .update({
-        voucher_code: it.voucher_code || `NT-${randomBytes(4).toString('hex').toUpperCase()}`,
-        delivery_status: 'delivered',
-      })
-      .eq('id', it.id)
+
+    // Без product_id (фолбэк-каталог) — выдаёт менеджер.
+    if (!it.product_id) {
+      allDelivered = false
+      continue
+    }
+
+    const { data: product } = await supabaseAdmin
+      .from('products')
+      .select('*')
+      .eq('id', it.product_id)
+      .maybeSingle()
+
+    // Только instant выдаётся автоматически; остальные типы — ручная обработка.
+    if (!product || product.type !== 'instant') {
+      allDelivered = false
+      continue
+    }
+
+    try {
+      // referenceId выдачи = invoice_id (= supplier_reference_id заказа). formData у live-гостя
+      // нет — для AppRoute оно и не нужно; Dessly без invite-ссылки уйдёт в ошибку → останется pending.
+      const codes = await deliverInstant(product as unknown as Product, Number(it.quantity) || 1, invoiceId)
+      if (codes.length > 0) {
+        await supabaseAdmin
+          .from('order_items')
+          .update({ voucher_code: codes.join('\n'), delivery_status: 'delivered' })
+          .eq('id', it.id)
+        continue
+      }
+      console.warn('[payments/fulfillment] выдача без кодов для', it.product_id)
+    } catch (e) {
+      if (e instanceof DeliveryPendingError) {
+        console.warn('[payments/fulfillment] выдача в обработке (pending):', it.product_id, e.transactionId)
+      } else {
+        // НЕ пробрасываем: заказ уже paid, иначе ретрай вебхука пропустит выдачу. Позиция — pending.
+        console.error('[payments/fulfillment] выдача упала для', it.product_id, e)
+      }
+    }
+    allDelivered = false
+  }
+
+  // Если все позиции выданы — переводим заказ в delivered (ЛК покажет «Выполнен»).
+  if (allDelivered && (items?.length ?? 0) > 0) {
+    await supabaseAdmin.from('orders').update({ status: 'delivered' }).eq('id', order.id).eq('status', 'paid')
   }
 
   // Промокод: +1 использование (один раз, т.к. переход new→paid произошёл здесь единожды).

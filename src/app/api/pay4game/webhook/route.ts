@@ -4,6 +4,9 @@ import { recordWebhook, markWebhookProcessed, updatePayment } from '@/lib/paymen
 import { markOrderPaidAndDeliver } from '@/lib/payments/fulfillment'
 
 export const dynamic = 'force-dynamic'
+// Выдача instant-товаров через deliverInstant может опрашивать статус поставщика (AppRoute/Dessly).
+// Поднимаем лимит выполнения, чтобы поллинг успевал завершиться до таймаута платформы.
+export const maxDuration = 60
 
 /**
  * POST /api/pay4game/webhook — единая точка приёма вебхуков pay4game.
