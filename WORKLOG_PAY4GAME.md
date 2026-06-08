@@ -75,6 +75,35 @@
   - Тест `tests/integration/pay4game-fulfillment.test.ts` — 5/5 PASS (вкл. кейс «form_data доходит до sendGift,
     заказ delivered»). `tsc --noEmit` чисто.
 
+- **Этап 12 (UI-флоу пополнения Steam с карточки главной)** — DONE.
+  - Кнопка «Пополнить Steam» (карточка на главной, `src/app/page.tsx`) теперь ведёт на `/steam`
+    (была `/catalog?search=Steam`). Форма: РЕГИОН (чипы RU/KZ/UA/BY/Другой) · СУММА (₽, быстрые
+    кнопки 500/1000/2000/3000/5000) · логин Steam · email (только для гостя) · живой расчёт комиссии
+    и итога → POST `/api/steam/topup` → переход на страницу оплаты `/pay/{invoice}`.
+  - Денежная модель: пользователь вводит сумму пополнения в ₽ (зачислится в кошелёк) = `steam_amount`
+    (как в доке pay4game, дефолт-лимиты 100–50000 ₽). Комиссия 3% сверху → к оплате
+    `charge = round(steamAmount) + round(steamAmount*3%)`; именно `charge` идёт в pay4game как `amount`,
+    `steam_amount` — отдельным полем. Регион — метаданные store-региона (в payment/create поля нет),
+    пишем в `order_items.form_data` и описание. Лимиты/комиссия — env `STEAM_TOPUP_MIN/MAX/COMMISSION_PERCENT`
+    (дефолты 100/50000/3), читаются в `getSteamTopupConfig`.
+  - Файлы:
+    - `src/lib/steam-topup.ts` — pure (регионы, getSteamTopupConfig, commissionRub, chargeRub,
+      normalizeSteamAccount, isValidSteamAccount, validateTopup). Без I/O — тестируемо.
+    - `src/app/api/steam/topup/route.ts` — POST. live → order(status=new, payment_method=card,
+      1 позиция product_id=null + form_data) → `createPayment({steamAccount,steamAmount,risk:1,...})` →
+      `upsertPaymentOnCreate({steam_account,steam_amount})` → `{mode:live, pay_url, invoice_id, uuid, url, token?}`.
+      mock → синхронная демо-оплата (order paid, DEMO-код). Поток владельца (session/existing/nickname)
+      и токен finalize — как в гостевом чекауте.
+    - `src/app/steam/{page,SteamTopupClient}.tsx` — серверная оболочка (config + sessionEmail) + клиентская форма.
+  - Переиспользованы (без изменений): `/pay/[invoice]` (QR/поллинг/после-оплатный ник), вебхуки
+    `status` (деньги → order paid; позиция без product_id остаётся pending, заказ остаётся `paid` —
+    кошелёк пополняет pay4game) и `status_steam` (статус зачисления Steam в payment row).
+  - Тесты: `tests/unit/steam-topup.test.ts` — 14/14 PASS. Полная сюита `vitest` — 392/392 PASS.
+    `npx tsc --noEmit` чисто. `npm run build` OK (роуты `/steam` и `/api/steam/topup` собрались).
+  - НАСТРОЙКА (Сергею): по желанию переопределить `STEAM_TOPUP_MIN/MAX/COMMISSION_PERCENT` в env.
+    Боевой запуск — общий с pay4game: `PAYMENTS_MODE=live` + ключи (см. блок ниже). До этого `/steam`
+    работает в ДЕМО (mock) — деньги не приняты, Steam не пополнен.
+
 ---
 
 ## ⚠️ ОТКРЫТО (НЕ доделано в коде)

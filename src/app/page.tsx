@@ -133,7 +133,7 @@ export default function HomePage() {
               </span>
               <h2>Пополни Steam-кошелёк</h2>
               <p>Мгновенное зачисление по честному курсу. Комиссия всего 3%, поддержка 24/7.</p>
-              <Link className="btn btn-primary btn-lg" href="/catalog?search=Steam">
+              <Link className="btn btn-primary btn-lg" href="/steam">
                 Пополнить Steam
               </Link>
             </div>
