@@ -213,6 +213,11 @@ export async function paymentCreate(input: PaymentCreateInput, cfg = getPay4game
   const amount = formatAmount(input.amount)
   const signature = signPaymentCreate(input.invoiceId, amount, input.email, cfg.secretKey)
   const sbpType = method === 'sbp' ? input.sbpType || cfg.sbpType : undefined
+  // client_ip нужен ТОЛЬКО для sbp+qr (по доке «при sbp_type=qr — да»). Для url/card/sberpay
+  // хостовая страница оплаты сама определяет устройство по живому соединению; пин client_ip,
+  // снятый на серверной функции (x-forwarded-for), там лишь приводит к рассинхрону IP и ошибке
+  // «счёт создан для другого устройства». Поэтому для не-qr флоу IP не передаём.
+  const clientIp = sbpType === 'qr' ? input.clientIp : undefined
   // return_url: подставляем invoice_id вместо макроса, если задан шаблон c #invoice_id#.
   const returnUrl = (input.returnUrl ?? cfg.returnUrl)?.replace(/#invoice_id#/g, input.invoiceId) || undefined
 
@@ -226,7 +231,7 @@ export async function paymentCreate(input: PaymentCreateInput, cfg = getPay4game
       invoice_id: input.invoiceId,
       amount,
       email: input.email,
-      client_ip: input.clientIp,
+      client_ip: clientIp,
       return_url: returnUrl,
       steam_account: input.steamAccount,
       steam_amount: input.steamAmount !== undefined ? formatAmount(input.steamAmount) : undefined,
