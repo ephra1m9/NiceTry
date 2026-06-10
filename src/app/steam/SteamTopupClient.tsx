@@ -24,13 +24,13 @@ interface Props {
   sessionEmail?: string | null
 }
 
-const QUICK_AMOUNTS = [500, 1000, 2000, 3000, 5000]
+const QUICK_AMOUNTS = [100, 300, 500, 1000, 2500, 5000]
 
 export default function SteamTopupClient({ config, sessionEmail }: Props) {
   const router = useRouter()
   const [region, setRegion] = useState(DEFAULT_REGION)
   const [account, setAccount] = useState('')
-  const [amount, setAmount] = useState<string>('1000')
+  const [amount, setAmount] = useState<string>('500')
   const [email, setEmail] = useState(sessionEmail ?? '')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)

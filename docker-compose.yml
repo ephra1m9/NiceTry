@@ -1,0 +1,41 @@
+services:
+  app:
+    container_name: nicetry-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_SUPPORT_URL: ${NEXT_PUBLIC_SUPPORT_URL}
+        NEXT_PUBLIC_REVIEWS_URL: ${NEXT_PUBLIC_REVIEWS_URL}
+        NEXT_PUBLIC_TELEGRAM_CHANNEL_URL: ${NEXT_PUBLIC_TELEGRAM_CHANNEL_URL}
+    env_file:
+      - .env.production
+    expose:
+      - "3000"
+    networks:
+      - web-network
+    restart: unless-stopped
+
+  cron:
+    container_name: nicetry-cron
+    image: alpine
+    env_file:
+      - .env.production
+    command: >
+      sh -c "apk add --no-cache curl dcron &&
+      echo '0 9 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/telegram/cron/review-requests' > /tmp/crontab &&
+      echo '17 3 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/dessly/cron/reconcile' >> /tmp/crontab &&
+      echo '23 3 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/telegram/cron/mailings' >> /tmp/crontab &&
+      crontab /tmp/crontab && crond -f -l 6"
+    networks:
+      - web-network
+    depends_on:
+      - app
+    restart: unless-stopped
+
+networks:
+  web-network:
+    external: true  # создать один раз: docker network create web-network

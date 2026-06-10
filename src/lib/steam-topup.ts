@@ -29,7 +29,7 @@ export const STEAM_REGIONS: SteamRegion[] = [
   { code: 'KZ', label: 'Казахстан', countryCode: 'kz', walletCurrency: '₸' },
   { code: 'UA', label: 'Украина', countryCode: 'ua', walletCurrency: '₴' },
   { code: 'BY', label: 'Беларусь', countryCode: 'by', walletCurrency: 'Br' },
-  { code: 'OTHER', label: 'Другой регион', countryCode: '', walletCurrency: '—' },
+  { code: 'OTHER', label: 'Другой СНГ регион', countryCode: '', walletCurrency: '—' },
 ]
 
 export const DEFAULT_REGION = STEAM_REGIONS[0].code
