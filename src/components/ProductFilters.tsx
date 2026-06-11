@@ -8,6 +8,10 @@ import Card from './ui/Card'
 interface ProductFiltersProps {
   onFilterChange: (filters: FilterState) => void
   categories?: Array<{ id: string; name: string }>
+  /** Опции фильтра по региону (например, для PSN: Турция, Польша, Индия) */
+  regions?: Array<{ value: string; label: string }>
+  /** Раскрыть расширенные фильтры по умолчанию */
+  defaultExpanded?: boolean
   /** Начальные значения (например, поисковый запрос из URL) */
   initial?: Partial<FilterState>
 }
@@ -16,18 +20,18 @@ export interface FilterState {
   search: string
   category_id: string
   type: string
-  supplier: string
   min_price: string
   max_price: string
+  region: string
 }
 
 const EMPTY: FilterState = {
   search: '',
   category_id: '',
   type: '',
-  supplier: '',
   min_price: '',
   max_price: '',
+  region: '',
 }
 
 const PRODUCT_TYPES = [
@@ -38,15 +42,10 @@ const PRODUCT_TYPES = [
   { value: 'manual', label: 'Ручная обработка' },
 ]
 
-const SUPPLIERS = [
-  { value: '', label: 'Все поставщики' },
-  { value: 'approute', label: 'AppRoute' },
-  { value: 'dessly', label: 'Dessly' },
-]
 
-export function ProductFilters({ onFilterChange, categories = [], initial }: ProductFiltersProps) {
+export function ProductFilters({ onFilterChange, categories = [], regions = [], defaultExpanded = false, initial }: ProductFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({ ...EMPTY, ...initial })
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   const handleChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value }
@@ -80,18 +79,42 @@ export function ProductFilters({ onFilterChange, categories = [], initial }: Pro
           />
         </div>
 
-        {/* Кнопка раскрытия фильтров */}
+        {/* Фильтр по цене — всегда виден */}
+        <div className="mt-3">
+          <label className="label">Цена, ₽</label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              aria-label="Цена от"
+              placeholder="от"
+              value={filters.min_price}
+              onChange={(e) => handleChange('min_price', e.target.value)}
+              min="0"
+            />
+            <span className="text-muted-2">—</span>
+            <Input
+              type="number"
+              aria-label="Цена до"
+              placeholder="до"
+              value={filters.max_price}
+              onChange={(e) => handleChange('max_price', e.target.value)}
+              min="0"
+            />
+          </div>
+        </div>
+
+        {/* Кнопка раскрытия дополнительных фильтров */}
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
           aria-expanded={isExpanded}
-          className="flex items-center justify-between w-full text-sm text-blue-700 font-semibold py-1.5 hover:text-blue transition-colors"
+          className="flex items-center justify-between w-full text-sm text-blue-700 font-semibold py-1.5 mt-3 hover:text-blue transition-colors"
         >
           <span className="inline-flex items-center gap-2">
             <svg className="ic ic-sm" viewBox="0 0 24 24">
               <path d="M4 6h16M7 12h10M10 18h4" />
             </svg>
-            Фильтры
+            Ещё фильтры
             {hasActiveFilters && (
               <span className="badge badge-instant !h-5 !px-1.5 !text-[10.5px]">активны</span>
             )}
@@ -104,7 +127,7 @@ export function ProductFilters({ onFilterChange, categories = [], initial }: Pro
           </svg>
         </button>
 
-        {/* Расширенные фильтры */}
+        {/* Дополнительные фильтры */}
         {isExpanded && (
           <div className="space-y-4 pt-4 mt-2 border-t border-border">
             {categories.length > 0 && (
@@ -126,6 +149,25 @@ export function ProductFilters({ onFilterChange, categories = [], initial }: Pro
               </div>
             )}
 
+            {regions.length > 0 && (
+              <div>
+                <label className="label" htmlFor="f-region">Регион</label>
+                <select
+                  id="f-region"
+                  value={filters.region}
+                  onChange={(e) => handleChange('region', e.target.value)}
+                  className="input"
+                >
+                  <option value="">Все регионы</option>
+                  {regions.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="label" htmlFor="f-type">Тип товара</label>
               <select
@@ -141,52 +183,13 @@ export function ProductFilters({ onFilterChange, categories = [], initial }: Pro
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="label" htmlFor="f-supplier">Поставщик</label>
-              <select
-                id="f-supplier"
-                value={filters.supplier}
-                onChange={(e) => handleChange('supplier', e.target.value)}
-                className="input"
-              >
-                {SUPPLIERS.map((supplier) => (
-                  <option key={supplier.value} value={supplier.value}>
-                    {supplier.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label">Цена, ₽</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  aria-label="Цена от"
-                  placeholder="от"
-                  value={filters.min_price}
-                  onChange={(e) => handleChange('min_price', e.target.value)}
-                  min="0"
-                />
-                <span className="text-muted-2">—</span>
-                <Input
-                  type="number"
-                  aria-label="Цена до"
-                  placeholder="до"
-                  value={filters.max_price}
-                  onChange={(e) => handleChange('max_price', e.target.value)}
-                  min="0"
-                />
-              </div>
-            </div>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={handleReset} block>
-                Сбросить фильтры
-              </Button>
-            )}
           </div>
+        )}
+
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={handleReset} block className="mt-3">
+            Сбросить фильтры
+          </Button>
         )}
       </div>
     </Card>

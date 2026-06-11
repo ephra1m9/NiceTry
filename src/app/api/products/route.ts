@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
   const minPrice = searchParams.get('min_price')
   const maxPrice = searchParams.get('max_price')
   const search = searchParams.get('search')
+  const region = searchParams.get('region')
   const limit = clampInt(searchParams.get('limit'), 50, 1, 200)
   const offset = clampInt(searchParams.get('offset'), 0, 0, 100000)
 
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
     if (minPrice) query = query.gte('price', parseFloat(minPrice))
     if (maxPrice) query = query.lte('price', parseFloat(maxPrice))
     if (search) query = query.ilike('name', `%${search}%`)
+    if (region) query = query.eq('region', region)
 
     // Миксуем каталог по id (gen_random_uuid — стабильно случаен). Иначе товары идут группами
     // по бренду (sort_order = порядок фида AppRoute: сначала все ~323 Apple-карты, затем все
@@ -87,10 +89,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ products: withCategories, total: count || products.length, limit, offset })
     }
     // Пустая БД или ошибка — фолбэк на сгенерированный каталог.
-    return fallbackResponse({ categoryId, cats, types, type, supplier, minPrice, maxPrice, search, limit, offset })
+    // Если categoryId — UUID из таблицы categories, разрешаем его в slug: в fallback-каталоге
+    // товары хранятся с category_id = slug, а не UUID, иначе фильтр по категории не сработает.
+    const fallbackCatId = await resolveToSlug(supabase, categoryId)
+    return fallbackResponse({ categoryId: fallbackCatId, cats, types, type, supplier, minPrice, maxPrice, search, region, limit, offset })
   } catch (error) {
     console.error('[products] DB unavailable, using catalog fallback:', error)
-    return fallbackResponse({ categoryId, cats, types, type, supplier, minPrice, maxPrice, search, limit, offset })
+    return fallbackResponse({ categoryId, cats, types, type, supplier, minPrice, maxPrice, search, region, limit, offset })
+  }
+}
+
+/** Если id выглядит как UUID — пробует получить slug из таблицы categories. Иначе возвращает as-is. */
+async function resolveToSlug(supabase: any, id: string | null): Promise<string | null> {
+  if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return id
+  try {
+    const { data } = await supabase.from('categories').select('slug').eq('id', id).maybeSingle()
+    return data?.slug ?? id
+  } catch {
+    return id
   }
 }
 
@@ -103,6 +119,7 @@ interface FilterArgs {
   minPrice: string | null
   maxPrice: string | null
   search: string | null
+  region: string | null
   limit: number
   offset: number
 }
@@ -135,6 +152,7 @@ function applyFilters(products: Product[], f: FilterArgs): Product[] {
     if (f.minPrice && p.price < parseFloat(f.minPrice)) return false
     if (f.maxPrice && p.price > parseFloat(f.maxPrice)) return false
     if (f.search && !p.name.toLowerCase().includes(f.search.toLowerCase())) return false
+    if (f.region && p.region !== f.region) return false
     return p.is_active
   })
 }
@@ -150,3 +168,4 @@ function splitCsv(raw: string | null): string[] {
   if (!raw) return []
   return raw.split(',').map((s) => s.trim()).filter(Boolean)
 }
+

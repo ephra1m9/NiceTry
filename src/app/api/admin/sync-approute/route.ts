@@ -85,6 +85,7 @@ export async function POST() {
         max_amount: p.max_amount ?? null,
         supplier_fields: p.supplier_fields ?? null,
         image_url: p.image_url ?? null,
+        region: p.region ?? null,
         sort_order: sort++,
       }
 
@@ -115,6 +116,7 @@ export async function POST() {
             max_amount: row.max_amount,
             supplier_fields: row.supplier_fields,
             image_url: row.image_url,
+            region: row.region,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingId)
@@ -150,3 +152,4 @@ export async function POST() {
     return NextResponse.json({ error: 'Не удалось синхронизировать каталог AppRoute' }, { status: 500 })
   }
 }
+

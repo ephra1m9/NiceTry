@@ -101,7 +101,7 @@ export default function ProductPage() {
   const discountPercent = hasDiscount
     ? Math.round(((product.original_price! - product.price) / product.original_price!) * 100)
     : 0
-  const isOutOfStock = product.type === 'instant' && product.stock !== undefined && product.stock <= 0
+  const isOutOfStock = product.type === 'instant' && product.stock != null && product.stock <= 0
   const isTopup = product.type === 'topup_auto' || product.type === 'topup_manual'
 
   const typeInfo: Record<string, { icon: JSX.Element; text: string }> = {

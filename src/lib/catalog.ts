@@ -10,7 +10,7 @@
 import catalog from '@/data/catalog.json'
 import brandLogos from '@/data/approute-brand-logos.json'
 import { listServices, type AppRouteService } from '@/lib/approute'
-import { mapServiceToCategorySlug } from '@/lib/approute/category-map'
+import { mapServiceToCategorySlug, extractRegion } from '@/lib/approute/category-map'
 import { listGames, type DesslyGame } from '@/lib/dessly'
 import type { Product, Category, ProductType } from '@/types'
 
@@ -152,6 +152,7 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
           supplier_id: svc.id,
           denomination_id: denomId,
           image_url: serviceImage(svc, den),
+          region: region || extractRegion(svc, den),
           created_at: NOW,
           updated_at: NOW,
         })
@@ -221,3 +222,4 @@ export async function buildCatalogProducts(): Promise<Product[]> {
   const all = [...appRouteProducts(services), ...desslyProducts(games), ...manualProducts()]
   return all.map((p) => ({ ...p, sort_order: sort++ } as Product & { sort_order: number }))
 }
+

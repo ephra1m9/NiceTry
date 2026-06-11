@@ -88,7 +88,7 @@ export function PCard({ product }: { product: Product }) {
   const ttl = product.name.split(' — ')[0]
 
   const isTopup = product.type === 'topup_auto' || product.type === 'topup_manual'
-  const inStock = !(product.type === 'instant' && product.stock !== undefined && product.stock <= 0)
+  const inStock = !(product.type === 'instant' && product.stock != null && product.stock <= 0)
   const hasDiscount = !!product.original_price && product.original_price > product.price
   const discount = hasDiscount
     ? Math.round((1 - product.price / product.original_price!) * 100)

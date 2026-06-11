@@ -145,6 +145,34 @@ async function withRetry(label, fn) {
 
 // ÐœÐ°Ð¿Ð¿Ð¸Ð½Ð³ ÑÐµÑ€Ð²Ð¸ÑÐ° AppRoute â†’ Ð²Ð½ÑƒÑ‚Ñ€ÐµÐ½Ð½Ð¸Ð¹ slug Ð¿Ð¾ ÐºÐ»ÑŽÑ‡ÐµÐ²Ñ‹Ð¼ ÑÐ»Ð¾Ð²Ð°Ð¼ (Ð·ÐµÑ€ÐºÐ°Ð»Ð¾ src/lib/approute/category-map.ts).
 const KNOWN = new Set(catMap.categories.map((c) => c.slug))
+
+// Íîðìàëèçàöèÿ ðåãèîíà (çåðêàëî extractRegion èç src/lib/approute/category-map.ts)
+const PSN_REGIONS = catMap.psnRegions
+const REGION_ALIASES = catMap.regionAliases
+function normalizeRegion(raw) {
+  if (!raw) return null
+  const up = raw.trim().toUpperCase()
+  if (!up) return null
+  if (PSN_REGIONS.includes(up)) return up
+  const alias = REGION_ALIASES[up]
+  if (alias && PSN_REGIONS.includes(alias)) return alias
+  return null
+}
+function extractRegion(svc, den) {
+  const candidates = [den?.region, svc.countryCode, den?.name, svc.name]
+  for (const c of candidates) {
+    const direct = normalizeRegion(c)
+    if (direct) return direct
+    if (c) {
+      const m = c.toUpperCase().match(/\b([A-Z]{2,})\b/g)
+      for (const token of m ?? []) {
+        const norm = normalizeRegion(token)
+        if (norm) return norm
+      }
+    }
+  }
+  return null
+}
 function mapServiceToSlug(svc) {
   if (svc.categoryName && KNOWN.has(svc.categoryName)) return svc.categoryName
   const hay = [svc.categoryName, svc.subcategoryName, svc.section, svc.name]
@@ -310,7 +338,7 @@ async function run() {
             category_id: categoryId, price: priceRub(den.price, rate, markup),
             stock: stockNum, is_active: stockNum > 0, supplier: 'approute',
             supplier_service_id: svc.id, denomination_id: denomId,
-            image_url: serviceImage(svc, den), sort_order: sort++,
+            image_url: serviceImage(svc, den), region: region || extractRegion(svc, den), sort_order: sort++,
           })
         }
       }
@@ -397,3 +425,4 @@ run().catch((e) => {
   console.error(e)
   process.exit(1)
 })
+

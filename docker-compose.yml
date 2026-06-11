@@ -25,11 +25,12 @@ services:
     env_file:
       - .env.production
     command: >
-      sh -c "apk add --no-cache curl dcron &&
-      echo '0 9 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/telegram/cron/review-requests' > /tmp/crontab &&
-      echo '17 3 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/dessly/cron/reconcile' >> /tmp/crontab &&
-      echo '23 3 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/telegram/cron/mailings' >> /tmp/crontab &&
-      crontab /tmp/crontab && crond -f -l 6"
+      sh -c "apk add --no-cache curl &&
+      mkdir -p /var/spool/cron/crontabs &&
+      echo '0 9 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/telegram/cron/review-requests' > /var/spool/cron/crontabs/root &&
+      echo '17 3 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/dessly/cron/reconcile' >> /var/spool/cron/crontabs/root &&
+      echo '23 3 * * * curl -sf -H \"x-cron-secret: $$CRON_SECRET\" http://nicetry-app:3000/api/telegram/cron/mailings' >> /var/spool/cron/crontabs/root &&
+      crond -f -l 6"
     networks:
       - web-network
     depends_on:

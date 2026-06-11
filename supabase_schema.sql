@@ -452,3 +452,6 @@ COMMENT ON TABLE orders IS 'Заказы пользователей';
 COMMENT ON TABLE promo_codes IS 'Промокоды (процент или фикс)';
 COMMENT ON TABLE balance_transactions IS 'История операций с балансом';
 COMMENT ON TABLE referral_settings IS 'Настройки реферальной программы по типам товаров';
+
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS region VARCHAR(10);
+CREATE INDEX IF NOT EXISTS products_region_idx ON public.products (region);

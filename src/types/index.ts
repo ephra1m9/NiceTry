@@ -46,6 +46,7 @@ export interface Product {
   min_amount?: number
   max_amount?: number
   supplier_fields?: any
+  region?: string | null
   created_at: string
   updated_at: string
 }

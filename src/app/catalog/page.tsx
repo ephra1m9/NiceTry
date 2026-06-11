@@ -38,9 +38,9 @@ function CatalogContent() {
     search: urlSearch,
     category_id: '',
     type: '',
-    supplier: '',
     min_price: '',
     max_price: '',
+    region: '',
   })
 
   // Грузит страницу товаров. append=false — первая страница (сброс при смене фильтров),
