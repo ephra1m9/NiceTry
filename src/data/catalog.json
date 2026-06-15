@@ -66,6 +66,7 @@
     {
       "id": "svc_appstore_giftcard", "name": "App Store & iTunes Gift Card", "ordersType": "shop", "categorySlug": "appstore",
       "description": "Подарочная карта Apple App Store / iTunes.",
+      "regions": ["RU", "US", "TR", "KZ", "IN", "PL", "CA"],
       "items": [
         { "id": "den_appstore_10", "name": "$10", "price": 10, "currency": "USD", "inStock": true },
         { "id": "den_appstore_25", "name": "$25", "price": 25, "currency": "USD", "inStock": true },

@@ -46,6 +46,15 @@ const CATEGORY_REGIONS: Record<string, Array<{ value: string; label: string }>> 
     { value: 'BR', label: 'Бразилия' },
     { value: 'UK', label: 'Великобритания' },
   ],
+  appstore: [
+    { value: 'RU', label: 'Россия' },
+    { value: 'US', label: 'США' },
+    { value: 'TR', label: 'Турция' },
+    { value: 'KZ', label: 'Казахстан' },
+    { value: 'IN', label: 'Индия' },
+    { value: 'PL', label: 'Польша' },
+    { value: 'CA', label: 'Канада' },
+  ],
 }
 
 const EMPTY_FILTERS: FilterState = {
