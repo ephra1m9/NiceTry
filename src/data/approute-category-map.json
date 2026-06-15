@@ -14,7 +14,7 @@
     "INDIA": "IN"
   },
   "categories": [
-    { "slug": "steam", "keywords": ["steam"] },
+    { "slug": "steam", "keywords": ["steam wallet", "steam gift card"] },
     { "slug": "psn", "keywords": ["psn", "playstation", "ps network", "ps store"] },
     { "slug": "roblox", "keywords": ["roblox", "robux"] },
     { "slug": "rockstar", "keywords": ["rockstar", "shark card", "gta"] },

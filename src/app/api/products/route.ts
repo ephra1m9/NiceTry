@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
       if (minPrice) query = query.gte('price', parseFloat(minPrice))
       if (maxPrice) query = query.lte('price', parseFloat(maxPrice))
       if (search) query = query.ilike('name', `%${search}%`)
-      if (region) query = query.eq('region', region)
+      // Колонки region в БД нет — региональные SKU помечены суффиксом «... (XX)» в названии (см. sync-approute.mjs).
+      if (region) query = query.ilike('name', `%(${region})`)
 
       query = query.order('id', { ascending: true }).range(offset, offset + limit - 1)
 
