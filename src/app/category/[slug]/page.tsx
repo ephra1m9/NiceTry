@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Product, Category } from '@/types'
 import { PCard } from '@/components/PCard'
 import { ProductFilters, FilterState } from '@/components/ProductFilters'
+import { RegionTabs } from '@/components/RegionTabs'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
@@ -28,6 +29,23 @@ const CATEGORY_REGIONS: Record<string, Array<{ value: string; label: string }>> 
     { value: 'UK', label: 'Великобритания' },
     { value: 'US', label: 'США' },
   ],
+  steam: [
+    { value: 'US', label: 'США' },
+    { value: 'AE', label: 'ОАЭ' },
+    { value: 'TR', label: 'Турция' },
+    { value: 'VN', label: 'Вьетнам' },
+    { value: 'EU', label: 'Европа' },
+    { value: 'IN', label: 'Индия' },
+    { value: 'HK', label: 'Гонконг' },
+    { value: 'ID', label: 'Индонезия' },
+  ],
+  roblox: [
+    { value: 'RU', label: 'Россия' },
+    { value: 'AT', label: 'Австрия' },
+    { value: 'US', label: 'США' },
+    { value: 'BR', label: 'Бразилия' },
+    { value: 'UK', label: 'Великобритания' },
+  ],
 }
 
 const EMPTY_FILTERS: FilterState = {
@@ -47,37 +65,46 @@ export default function CategoryPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingProducts, setLoadingProducts] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
 
   const categoryRegions = CATEGORY_REGIONS[slug] ?? []
   const hasRegions = categoryRegions.length > 0
+  const abortRef = useRef<AbortController | null>(null)
 
   function buildParams(categoryId: string, offset: number): URLSearchParams {
-    const params = new URLSearchParams()
-    params.append('category_id', categoryId)
-    params.append('limit', String(PAGE_SIZE))
-    params.append('offset', String(offset))
-    if (filters.search) params.append('search', filters.search)
-    if (filters.type) params.append('type', filters.type)
-    if (filters.min_price) params.append('min_price', filters.min_price)
-    if (filters.max_price) params.append('max_price', filters.max_price)
-    if (filters.region) params.append('region', filters.region)
-    return params
+    const p = new URLSearchParams()
+    p.append('category_id', categoryId)
+    p.append('category_slug', slug) // всегда передаём slug для корректного fallback-фильтра
+    p.append('limit', String(PAGE_SIZE))
+    p.append('offset', String(offset))
+    if (filters.search) p.append('search', filters.search)
+    if (filters.type) p.append('type', filters.type)
+    if (filters.min_price) p.append('min_price', filters.min_price)
+    if (filters.max_price) p.append('max_price', filters.max_price)
+    if (filters.region) p.append('region', filters.region)
+    return p
   }
 
   function loadPage(categoryId: string, append: boolean) {
+    if (!append) {
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
+    }
+    const signal = abortRef.current?.signal
     const offset = append ? products.length : 0
     if (append) setLoadingMore(true)
-    fetch(`/api/products?${buildParams(categoryId, offset).toString()}`)
+    else setLoadingProducts(true)
+    fetch(`/api/products?${buildParams(categoryId, offset).toString()}`, { signal })
       .then((res) => res.json())
       .then((data) => {
         const page: Product[] = data.products || []
         setProducts((prev) => (append ? [...prev, ...page] : page))
         setTotal(typeof data.total === 'number' ? data.total : page.length)
       })
-      .catch((err) => console.error('Failed to load category products:', err))
-      .finally(() => setLoadingMore(false))
+      .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to load category products:', err) })
+      .finally(() => { setLoadingMore(false); setLoadingProducts(false) })
   }
 
   // Первичная загрузка категории
@@ -142,7 +169,11 @@ export default function CategoryPage() {
       <div className="flex items-center gap-3 mb-6">
         {category.icon && (
           <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-2xl flex-none">
-            {category.icon}
+            {category.icon.startsWith('/') || category.icon.startsWith('http') ? (
+              <img src={category.icon} alt="" className="w-7 h-7 object-contain" />
+            ) : (
+              category.icon
+            )}
           </span>
         )}
         <div className="min-w-0">
@@ -153,18 +184,26 @@ export default function CategoryPage() {
         </div>
       </div>
 
+      {hasRegions && (
+        <RegionTabs
+          regions={categoryRegions}
+          selected={filters.region}
+          onChange={(value) => setFilters((prev) => ({ ...prev, region: value }))}
+        />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5 lg:gap-6 items-start">
         {/* Боковая панель фильтров */}
         <ProductFilters
           key={slug}
-          onFilterChange={setFilters}
-          regions={categoryRegions}
-          defaultExpanded={hasRegions}
+          onFilterChange={(f) => setFilters((prev) => ({ ...f, region: prev.region }))}
         />
 
         {/* Список товаров */}
         <div className="min-w-0">
-          {products.length === 0 ? (
+          {loadingProducts ? (
+            <Spinner label="Загрузка товаров…" />
+          ) : products.length === 0 ? (
             <div className="empty-state card">
               <div className="ico">
                 <svg className="ic" viewBox="0 0 24 24">

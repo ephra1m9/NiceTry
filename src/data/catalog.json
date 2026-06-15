@@ -1,23 +1,24 @@
 {
   "_comment": "Единый источник данных каталога. Используется: (1) мок-режимом клиентов AppRoute/Dessly до получения реальных ключей, (2) импортёром /api/products/import, (3) seed-скриптом scripts/seed.mjs. Категории и наценка/курс — плейсхолдеры, редактируются в админке. Формула цены: price_rub = ceil(price_usd * usd_to_rub_rate * (1 + markup_percent/100)).",
   "categories": [
-    { "slug": "steam", "name": "Steam Gift Card", "icon": "🎮", "supplier": "approute", "markup_percent": 14, "usd_to_rub_rate": 80, "sort_order": 1 },
-    { "slug": "psn", "name": "PSN Gift Card", "icon": "🅿️", "supplier": "approute", "markup_percent": 16, "usd_to_rub_rate": 80, "sort_order": 2 },
-    { "slug": "rockstar", "name": "Rockstar", "icon": "⭐", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 3 },
-    { "slug": "roblox", "name": "Roblox", "icon": "🟥", "supplier": "approute", "markup_percent": 17, "usd_to_rub_rate": 80, "sort_order": 4 },
-    { "slug": "appstore", "name": "App Store", "icon": "🍎", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 5 },
-    { "slug": "google", "name": "Google Play", "icon": "▶️", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 6 },
-    { "slug": "wow-time-card", "name": "WoW Time Card", "icon": "🐉", "supplier": "approute", "markup_percent": 13, "usd_to_rub_rate": 80, "sort_order": 7 },
-    { "slug": "blizzard", "name": "Blizzard", "icon": "❄️", "supplier": "approute", "markup_percent": 14, "usd_to_rub_rate": 80, "sort_order": 8 },
-    { "slug": "minecraft", "name": "Minecraft", "icon": "⛏️", "supplier": "approute", "markup_percent": 16, "usd_to_rub_rate": 80, "sort_order": 9 },
-    { "slug": "pubg-mobile", "name": "PUBG Mobile", "icon": "🔫", "supplier": "approute", "markup_percent": 16, "usd_to_rub_rate": 80, "sort_order": 10 },
-    { "slug": "valorant-ru", "name": "Valorant RU", "icon": "🎯", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 11 },
+    { "slug": "steam", "name": "Steam Gift Card", "icon": "/img/steam_logo.svg", "supplier": "approute", "markup_percent": 14, "usd_to_rub_rate": 80, "sort_order": 1 },
+    { "slug": "psn", "name": "PSN Gift Card", "icon": "/img/ps_logo.svg", "supplier": "approute", "markup_percent": 16, "usd_to_rub_rate": 80, "sort_order": 2 },
+    { "slug": "rockstar", "name": "Rockstar", "icon": "/img/rockstar_logo.svg", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 3 },
+    { "slug": "roblox", "name": "Roblox", "icon": "/img/roblox_logo.svg", "supplier": "approute", "markup_percent": 17, "usd_to_rub_rate": 80, "sort_order": 4 },
+    { "slug": "appstore", "name": "App Store", "icon": "/img/appstore_logo.svg", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 5 },
+    { "slug": "google", "name": "Google Play", "icon": "/img/googleplay_logo.svg", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 6 },
+    { "slug": "wow-time-card", "name": "WoW Time Card", "icon": "/img/wow_logo.svg", "supplier": "approute", "markup_percent": 13, "usd_to_rub_rate": 80, "sort_order": 7 },
+    { "slug": "blizzard", "name": "Blizzard", "icon": "/img/blizzard_logo.svg", "supplier": "approute", "markup_percent": 14, "usd_to_rub_rate": 80, "sort_order": 8 },
+    { "slug": "minecraft", "name": "Minecraft", "icon": "/img/minecraft_logo.svg", "supplier": "approute", "markup_percent": 16, "usd_to_rub_rate": 80, "sort_order": 9 },
+    { "slug": "pubg-mobile", "name": "PUBG Mobile", "icon": "/img/pubg_logo.svg", "supplier": "approute", "markup_percent": 16, "usd_to_rub_rate": 80, "sort_order": 10 },
+    { "slug": "valorant-ru", "name": "Valorant RU", "icon": "/img/valorant_logo.svg", "supplier": "approute", "markup_percent": 15, "usd_to_rub_rate": 80, "sort_order": 11 },
     { "slug": "dessly-games", "name": "Отправка игр / гифтов", "icon": "🎁", "supplier": "dessly", "markup_percent": 18, "usd_to_rub_rate": 82, "sort_order": 12 }
   ],
   "approuteServices": [
     {
       "id": "svc_steam_giftcard", "name": "Steam Gift Card", "ordersType": "shop", "categorySlug": "steam",
       "description": "Пополнение кошелька Steam подарочным кодом. Моментальная выдача.",
+      "regions": ["US", "AE", "TR", "VN", "EU", "IN", "HK", "ID"],
       "items": [
         { "id": "den_steam_5", "name": "$5", "price": 5, "currency": "USD", "inStock": true },
         { "id": "den_steam_10", "name": "$10", "price": 10, "currency": "USD", "inStock": true },
@@ -55,6 +56,7 @@
     {
       "id": "svc_roblox_giftcard", "name": "Roblox Gift Card", "ordersType": "shop", "categorySlug": "roblox",
       "description": "Robux подарочным кодом.",
+      "regions": ["RU", "AT", "US", "BR", "UK"],
       "items": [
         { "id": "den_roblox_800", "name": "800 Robux", "price": 10, "currency": "USD", "inStock": true },
         { "id": "den_roblox_1700", "name": "1700 Robux", "price": 20, "currency": "USD", "inStock": true },

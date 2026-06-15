@@ -195,11 +195,15 @@ export default function HomePage() {
             return (
               <div key={cat.id} className="cat-tile" onClick={() => router.push(`/category/${cat.slug}`)}>
                 <div className="ico">
-                  <svg
-                    className="ic"
-                    viewBox="0 0 24 24"
-                    dangerouslySetInnerHTML={{ __html: categoryIconPaths(cat.name) }}
-                  />
+                  {cat.icon && (cat.icon.startsWith('/') || cat.icon.startsWith('http')) ? (
+                    <img src={cat.icon} alt="" className="w-6 h-6 object-contain" />
+                  ) : (
+                    <svg
+                      className="ic"
+                      viewBox="0 0 24 24"
+                      dangerouslySetInnerHTML={{ __html: categoryIconPaths(cat.name) }}
+                    />
+                  )}
                 </div>
                 <div className="nm">{cat.name}</div>
                 <div className="ct">

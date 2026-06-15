@@ -8,8 +8,6 @@ import Card from './ui/Card'
 interface ProductFiltersProps {
   onFilterChange: (filters: FilterState) => void
   categories?: Array<{ id: string; name: string }>
-  /** Опции фильтра по региону (например, для PSN: Турция, Польша, Индия) */
-  regions?: Array<{ value: string; label: string }>
   /** Раскрыть расширенные фильтры по умолчанию */
   defaultExpanded?: boolean
   /** Начальные значения (например, поисковый запрос из URL) */
@@ -43,7 +41,7 @@ const PRODUCT_TYPES = [
 ]
 
 
-export function ProductFilters({ onFilterChange, categories = [], regions = [], defaultExpanded = false, initial }: ProductFiltersProps) {
+export function ProductFilters({ onFilterChange, categories = [], defaultExpanded = false, initial }: ProductFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({ ...EMPTY, ...initial })
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
@@ -143,25 +141,6 @@ export function ProductFilters({ onFilterChange, categories = [], regions = [], 
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {regions.length > 0 && (
-              <div>
-                <label className="label" htmlFor="f-region">Регион</label>
-                <select
-                  id="f-region"
-                  value={filters.region}
-                  onChange={(e) => handleChange('region', e.target.value)}
-                  className="input"
-                >
-                  <option value="">Все регионы</option>
-                  {regions.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
                     </option>
                   ))}
                 </select>

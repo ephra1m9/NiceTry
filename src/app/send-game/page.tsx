@@ -285,6 +285,9 @@ export default function SendGamePage() {
                 {/* STEP 1: Game selection */}
                 {step === 'game' && (
                   <div className="sg-card">
+                    <div className="sg-info-banner">
+                      В поиске игры нужно вводить полное, официальное название игры.
+                    </div>
                     <div className="sg-search-row">
                       <input
                         className="sg-input sg-search-input"
@@ -726,6 +729,11 @@ const SEND_GAME_CSS = `
   .sg-step-bubble--done { border-color: var(--green, #15a05a); background: var(--green, #15a05a); color: #fff; }
   .sg-step-label { font-size: 12px; color: var(--muted-2, #869099); white-space: nowrap; }
   .sg-step-label--active { color: var(--navy, #0f1e2e); font-weight: 600; }
+
+  /* ---- Info banner ---- */
+  .sg-info-banner { background: var(--blue-50, #eaf4fd); border: 1px solid var(--blue-100, #d6eafb);
+    border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--blue-700, #0f62a8);
+    margin-bottom: 16px; line-height: 1.4; }
 
   /* ---- Search ---- */
   .sg-search-row { margin-bottom: 16px; }

@@ -14,6 +14,7 @@ import type { Product } from '@/types'
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const categoryId = searchParams.get('category_id')
+  const categorySlug = searchParams.get('category_slug')
   const cats = splitCsv(searchParams.get('cats'))
   const types = splitCsv(searchParams.get('types'))
   const type = searchParams.get('type')
@@ -25,78 +26,66 @@ export async function GET(request: NextRequest) {
   const limit = clampInt(searchParams.get('limit'), 50, 1, 200)
   const offset = clampInt(searchParams.get('offset'), 0, 0, 100000)
 
+  const filterArgs = { categoryId, categorySlug, cats, types, type, supplier, minPrice, maxPrice, search, region, limit, offset }
+
+  // Supabase-путь с таймаутом: если БД не ответила за 1.5с — сразу фолбэк.
+  // Это устраняет задержку 4–8с при недоступном/медленном Supabase.
   try {
-    const supabase = await createClient()
+    const dbPromise = (async () => {
+      const supabase = await createClient()
 
-    // Не полагаемся на FK-embed (`category:categories(...)`): если PostgREST
-    // schema cache его не находит, весь запрос падает с ошибкой и витрина уходит
-    // в фолбэк-каталог, ломая фильтр по категориям. Берём товары, затем мапим
-    // категории отдельным запросом.
-    let query = supabase
-      .from('products')
-      .select('*', { count: 'exact' })
-      .eq('is_active', true)
-      // Игры Dessly убраны из общего каталога — покупка только через /send-game.
-      .neq('supplier', 'dessly')
+      let query = supabase
+        .from('products')
+        .select('*', { count: 'exact' })
+        .eq('is_active', true)
+        .neq('supplier', 'dessly')
 
-    if (categoryId) query = query.eq('category_id', categoryId)
-    // Группы шапки: cats — slug'и категорий. category_id в товарах — uuid,
-    // поэтому сперва переводим slug'и в id отдельным запросом.
-    if (cats.length > 0) {
-      const { data: groupCats } = await supabase
-        .from('categories')
-        .select('id')
-        .in('slug', cats)
-      const ids = (groupCats || []).map((c: any) => c.id)
-      // Нет таких категорий в БД — отдаём пустой результат, а не весь каталог.
-      query = query.in('category_id', ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000'])
-    }
-    if (types.length > 0) query = query.in('type', types)
-    if (type) query = query.eq('type', type)
-    if (supplier) query = query.eq('supplier', supplier)
-    if (minPrice) query = query.gte('price', parseFloat(minPrice))
-    if (maxPrice) query = query.lte('price', parseFloat(maxPrice))
-    if (search) query = query.ilike('name', `%${search}%`)
-    if (region) query = query.eq('region', region)
+      if (categoryId) query = query.eq('category_id', categoryId)
+      if (cats.length > 0) {
+        const { data: groupCats } = await supabase
+          .from('categories')
+          .select('id')
+          .in('slug', cats)
+        const ids = (groupCats || []).map((c: any) => c.id)
+        query = query.in('category_id', ids.length > 0 ? ids : ['00000000-0000-0000-0000-000000000000'])
+      }
+      if (types.length > 0) query = query.in('type', types)
+      if (type) query = query.eq('type', type)
+      if (supplier) query = query.eq('supplier', supplier)
+      if (minPrice) query = query.gte('price', parseFloat(minPrice))
+      if (maxPrice) query = query.lte('price', parseFloat(maxPrice))
+      if (search) query = query.ilike('name', `%${search}%`)
+      if (region) query = query.eq('region', region)
 
-    // Миксуем каталог по id (gen_random_uuid — стабильно случаен). Иначе товары идут группами
-    // по бренду (sort_order = порядок фида AppRoute: сначала все ~323 Apple-карты, затем все
-    // Steam и т.д.), и первые страницы оказываются «чисто Apple». id — первичный ключ, поэтому
-    // порядок стабилен между страницами (пагинация limit/offset не плодит дубли/пропуски).
-    query = query
-      .order('id', { ascending: true })
-      .range(offset, offset + limit - 1)
+      query = query.order('id', { ascending: true }).range(offset, offset + limit - 1)
 
-    const { data: products, error, count } = await query
+      const { data: products, error, count } = await query
+      if (error || !products || products.length === 0) return null
 
-    if (!error && products && products.length > 0) {
-      // Подмешиваем категорию (id, name, slug) одним запросом
-      const categoryIds = Array.from(
-        new Set(products.map((p: any) => p.category_id).filter(Boolean))
-      )
+      const categoryIds = Array.from(new Set(products.map((p: any) => p.category_id).filter(Boolean)))
       const categoryMap: Record<string, { id: string; name: string; slug: string }> = {}
       if (categoryIds.length > 0) {
-        const { data: cats } = await supabase
+        const { data: catRows } = await supabase
           .from('categories')
           .select('id, name, slug')
           .in('id', categoryIds)
-        for (const c of cats || []) categoryMap[c.id] = c
+        for (const c of catRows || []) categoryMap[c.id] = c
       }
       const withCategories = products.map((p: any) => ({
         ...p,
         category: p.category_id ? categoryMap[p.category_id] || null : null,
       }))
       return NextResponse.json({ products: withCategories, total: count || products.length, limit, offset })
-    }
-    // Пустая БД или ошибка — фолбэк на сгенерированный каталог.
-    // Если categoryId — UUID из таблицы categories, разрешаем его в slug: в fallback-каталоге
-    // товары хранятся с category_id = slug, а не UUID, иначе фильтр по категории не сработает.
-    const fallbackCatId = await resolveToSlug(supabase, categoryId)
-    return fallbackResponse({ categoryId: fallbackCatId, cats, types, type, supplier, minPrice, maxPrice, search, region, limit, offset })
+    })()
+
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500))
+    const result = await Promise.race([dbPromise, timeoutPromise])
+    if (result) return result
   } catch (error) {
-    console.error('[products] DB unavailable, using catalog fallback:', error)
-    return fallbackResponse({ categoryId, cats, types, type, supplier, minPrice, maxPrice, search, region, limit, offset })
+    console.error('[products] DB error, using catalog fallback:', error)
   }
+
+  return fallbackResponse(filterArgs)
 }
 
 /** Если id выглядит как UUID — пробует получить slug из таблицы categories. Иначе возвращает as-is. */
@@ -112,6 +101,7 @@ async function resolveToSlug(supabase: any, id: string | null): Promise<string |
 
 interface FilterArgs {
   categoryId: string | null
+  categorySlug: string | null
   cats: string[]
   types: string[]
   type: string | null
@@ -143,7 +133,10 @@ function applyFilters(products: Product[], f: FilterArgs): Product[] {
   return products.filter((p) => {
     // Игры Dessly убраны из общего каталога — покупка только через /send-game.
     if (p.supplier === 'dessly') return false
-    if (f.categoryId && p.category_id !== f.categoryId && p.category?.slug !== f.categoryId) return false
+    // categorySlug всегда slug ('psn'), categoryId может быть UUID из Supabase.
+    // Используем slug как приоритетный ключ для fallback-фильтра.
+    const catKey = f.categorySlug ?? f.categoryId
+    if (catKey && p.category_id !== catKey && p.category?.slug !== catKey) return false
     // Группы шапки: в фолбэк-каталоге id категории = slug, сверяем по обоим полям.
     if (f.cats.length > 0 && !f.cats.includes(p.category?.slug || '') && !f.cats.includes(p.category_id || '')) return false
     if (f.types.length > 0 && !f.types.includes(p.type)) return false
@@ -152,7 +145,7 @@ function applyFilters(products: Product[], f: FilterArgs): Product[] {
     if (f.minPrice && p.price < parseFloat(f.minPrice)) return false
     if (f.maxPrice && p.price > parseFloat(f.maxPrice)) return false
     if (f.search && !p.name.toLowerCase().includes(f.search.toLowerCase())) return false
-    if (f.region && p.region !== f.region) return false
+    if (f.region && p.region !== f.region && !p.name.includes(`(${f.region})`)) return false
     return p.is_active
   })
 }

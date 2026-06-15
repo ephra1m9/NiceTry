@@ -10,6 +10,7 @@
 import catalog from '@/data/catalog.json'
 import brandLogos from '@/data/approute-brand-logos.json'
 import { listServices, type AppRouteService } from '@/lib/approute'
+import { mockServices } from '@/lib/approute/mock'
 import { mapServiceToCategorySlug, extractRegion } from '@/lib/approute/category-map'
 import { listGames, type DesslyGame } from '@/lib/dessly'
 import type { Product, Category, ProductType } from '@/types'
@@ -203,23 +204,45 @@ function manualProducts(): Product[] {
   })
 }
 
+// Кэш каталога (30 с) + один shared pending-промис, чтобы параллельные запросы не ждали каждый свой таймаут.
+let _catalogCache: { products: Product[]; ts: number } | null = null
+let _buildPromise: Promise<Product[]> | null = null
+const CATALOG_TTL_MS = 30_000
+const SERVICES_TIMEOUT_MS = 1500
+
 /**
  * Полный нормализованный каталог из поставщиков (мок или боевой режим — прозрачно).
+ * listServices() в live-режиме делает HTTP-запрос к AppRoute. Если он не отвечает за
+ * SERVICES_TIMEOUT_MS — используем статичный каталог из catalog.json (тот же источник,
+ * что и в мок-режиме). Это устраняет задержку 4–8 с при недоступном AppRoute API.
+ * Параллельные вызовы разделяют один pending-промис — нет двойного ожидания.
  */
 export async function buildCatalogProducts(): Promise<Product[]> {
+  if (_catalogCache && Date.now() - _catalogCache.ts < CATALOG_TTL_MS) {
+    return _catalogCache.products
+  }
+  if (_buildPromise) return _buildPromise
+  _buildPromise = _doBuildCatalog().finally(() => { _buildPromise = null })
+  return _buildPromise
+}
+
+async function _doBuildCatalog(): Promise<Product[]> {
+  const staticServices = mockServices().items
+
   const [services, games] = await Promise.all([
-    listServices().catch((e) => {
-      console.error('[catalog] listServices failed:', e)
-      return [] as AppRouteService[]
-    }),
-    listGames().catch((e) => {
-      console.error('[catalog] listGames failed:', e)
-      return [] as DesslyGame[]
-    }),
+    Promise.race([
+      listServices(),
+      new Promise<AppRouteService[]>((resolve) =>
+        setTimeout(() => resolve(staticServices), SERVICES_TIMEOUT_MS)
+      ),
+    ]).catch(() => staticServices),
+    listGames().catch(() => [] as DesslyGame[]),
   ])
 
   let sort = 0
   const all = [...appRouteProducts(services), ...desslyProducts(games), ...manualProducts()]
-  return all.map((p) => ({ ...p, sort_order: sort++ } as Product & { sort_order: number }))
+  const products = all.map((p) => ({ ...p, sort_order: sort++ } as Product & { sort_order: number }))
+  _catalogCache = { products, ts: Date.now() }
+  return products
 }
 

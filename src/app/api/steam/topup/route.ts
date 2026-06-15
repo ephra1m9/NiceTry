@@ -122,17 +122,13 @@ export async function POST(request: NextRequest) {
         await supabaseAdmin.from('order_items').insert(baseItem)
       }
 
-      const clientIp =
-        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-        request.headers.get('x-real-ip') ||
-        undefined
-
       const payment = await createPayment({
         orderId: referenceId,
         orderNumber,
         amount: charge,
         email,
-        clientIp,
+        // client_ip НЕ передаём: Steam-пополнение использует hosted URL (не QR-скан).
+        // Для hosted-URL флоу IP с сервера (x-forwarded-for) ≠ IP пользователя → "Счет недействителен".
         steamAccount: account,
         steamAmount,
         risk: 1, // авто-пополнение Steam — низкий риск
