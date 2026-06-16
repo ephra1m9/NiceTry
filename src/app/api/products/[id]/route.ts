@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { buildCatalogProducts } from '@/lib/catalog'
+import { buildCatalogProducts, priceRub } from '@/lib/catalog'
 
 /**
  * GET /api/products/[id]
@@ -15,12 +15,25 @@ export async function GET(
   try {
     const supabase = await createClient()
 
-    const { data: product, error } = await supabase
+    // Сначала ищем по первичному ключу (UUID), затем по denomination_id —
+    // ссылки из фолбэк-каталога содержат denomination_id, а не UUID.
+    let { data: product, error } = await supabase
       .from('products')
       .select('*, category:categories(id, name, slug)')
       .eq('id', id)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
+
+    if (!product) {
+      const res = await supabase
+        .from('products')
+        .select('*, category:categories(id, name, slug)')
+        .eq('denomination_id', id)
+        .eq('is_active', true)
+        .maybeSingle()
+      product = res.data
+      error = res.error
+    }
 
     if (error || !product) {
       return fallbackProduct(id)
@@ -61,7 +74,26 @@ async function fallbackProduct(id: string) {
     if (!product || product.supplier === 'dessly') {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
-    return NextResponse.json({ product, source: 'catalog-fallback' })
+
+    // Пересчитываем цену по актуальной наценке/курсу из БД.
+    let finalProduct = product
+    try {
+      const supabase = await createClient()
+      const slug = product.category?.slug
+      const priceUsd = (product as any).price_usd as number | undefined
+      if (slug && priceUsd && priceUsd > 0) {
+        const { data: cat } = await supabase
+          .from('categories')
+          .select('usd_to_rub_rate, markup_percent')
+          .eq('slug', slug)
+          .maybeSingle()
+        if (cat && Number(cat.usd_to_rub_rate) > 0) {
+          finalProduct = { ...product, price: priceRub(priceUsd, Number(cat.usd_to_rub_rate), Number(cat.markup_percent ?? 0)) }
+        }
+      }
+    } catch { /* оставляем статическую цену если БД недоступна */ }
+
+    return NextResponse.json({ product: finalProduct, source: 'catalog-fallback' })
   } catch (e) {
     console.error('[product] fallback failed:', e)
     return NextResponse.json({ error: 'Product not found' }, { status: 404 })

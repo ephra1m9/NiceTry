@@ -147,6 +147,7 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
           category_id: cat.id,
           category: { name: cat.name, slug: cat.slug },
           price: priceRub(den.price, cat.usd_to_rub_rate, cat.markup_percent),
+          price_usd: den.price,
           stock: stockNum,
           is_active: stockNum > 0,
           supplier: 'approute',

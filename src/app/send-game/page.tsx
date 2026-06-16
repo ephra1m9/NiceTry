@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTelegram } from '@/hooks/useTelegram'
-import { computeGiftTotal, isSteamInviteUrl } from '@/lib/dessly-gift'
+import { isSteamInviteUrl } from '@/lib/dessly-gift'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +25,8 @@ interface EditionEntry {
   priceOriginal: number
   discount: number
   region: string
+  price_rub: number
+  price_rub_original: number
 }
 
 interface DesslyConfig {
@@ -153,6 +155,8 @@ export default function SendGamePage() {
           priceOriginal: e.priceOriginal || e.price || 0,
           discount: e.discount || 0,
           region: e.region || region,
+          price_rub: e.price_rub || 0,
+          price_rub_original: e.price_rub_original || e.price_rub || 0,
         }))
         setEditions(list)
         if (list.length > 0) setSelectedEdition(list[0])
@@ -163,12 +167,7 @@ export default function SendGamePage() {
 
   // ---- Derived ----
   const inviteValid = isSteamInviteUrl(invite)
-  const commissionPct = config?.commission_percent ?? 4
-  const editionPriceRub = selectedEdition ? Math.round(selectedEdition.price * 85) : 0 // USD→RUB approx
-  const calc = useMemo(
-    () => computeGiftTotal(editionPriceRub, commissionPct),
-    [editionPriceRub, commissionPct]
-  )
+  const totalPriceRub = selectedEdition?.price_rub ?? 0
 
   const canSubmit = selectedGame && selectedEdition && inviteValid
 
@@ -381,7 +380,7 @@ export default function SendGamePage() {
                                 className={`sg-edition-chip ${selectedEdition?.packageId === ed.packageId ? 'sg-edition-chip--active' : ''}`}
                               >
                                 <span className="sg-edition-name">{ed.edition}</span>
-                                <span className="sg-edition-price">~{Math.round(ed.price * 85)} ₽</span>
+                                <span className="sg-edition-price">{ed.price_rub} ₽</span>
                                 {ed.discount > 0 && (
                                   <span className="sg-edition-badge">-{ed.discount}%</span>
                                 )}
@@ -456,22 +455,14 @@ export default function SendGamePage() {
                         <span className="sg-confirm-val" style={{ fontSize: 12, wordBreak: 'break-all' }}>{invite}</span>
                       </div>
                       <div className="sg-confirm-divider" />
-                      <div className="sg-confirm-row">
-                        <span>Цена игры</span>
-                        <span className="sg-confirm-val">{calc.price} ₽</span>
-                      </div>
-                      <div className="sg-confirm-row">
-                        <span>Комиссия ({commissionPct}%)</span>
-                        <span className="sg-confirm-val">{calc.commission} ₽</span>
-                      </div>
                       <div className="sg-confirm-row sg-confirm-row--total">
                         <span>К оплате</span>
-                        <span className="sg-confirm-total">{calc.total} ₽</span>
+                        <span className="sg-confirm-total">{totalPriceRub} ₽</span>
                       </div>
                     </div>
 
                     <p className="sg-confirm-note">
-                      Точная цена определяется поставщиком при отправке и может незначительно отличаться.
+                      Цена рассчитана по актуальному курсу и наценке. Если цена у поставщика изменится до момента отправки, разница будет возвращена на баланс.
                     </p>
 
                     <button
@@ -479,7 +470,7 @@ export default function SendGamePage() {
                       disabled={submitting || !canSubmit}
                       className="sg-btn sg-btn--primary sg-btn--full sg-btn--lg"
                     >
-                      {submitting ? 'Оформляем...' : `Оплатить с баланса · ${calc.total} ₽`}
+                      {submitting ? 'Оформляем...' : `Оплатить с баланса · ${totalPriceRub} ₽`}
                     </button>
 
                     <p className="sg-confirm-terms">

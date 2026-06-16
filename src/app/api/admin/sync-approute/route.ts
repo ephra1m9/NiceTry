@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/admin'
-import { buildCategories, buildCatalogProducts } from '@/lib/catalog'
+import { buildCategories, buildCatalogProducts, priceRub } from '@/lib/catalog'
 
 /**
  * POST /api/admin/sync-approute
@@ -8,9 +8,11 @@ import { buildCategories, buildCatalogProducts } from '@/lib/catalog'
  * Аналог CLI `npm run sync:approute`, но в контексте запроса под requireAdmin().
  *
  * Только AppRoute-категории и товары (supplier='approute') — отправка игр Dessly синхронизируется
- * отдельно (Блок B4). Цены считаются по формуле §5.3 внутри buildCatalogProducts(). Идемпотентно:
- * апсерт по (supplier, supplier_service_id, denomination_id) — повторный запуск не плодит дубли.
- * В мок-режиме (нет боевого APPROUTE_BASE_URL) берётся фолбэк-каталог — витрина остаётся наполненной.
+ * отдельно (Блок B4). Идемпотентно: апсерт по (supplier, supplier_service_id, denomination_id).
+ *
+ * Важно: markup_percent и usd_to_rub_rate в категориях НЕ перезаписываются при ре-синке
+ * (сохраняем изменения, сделанные через админку). При обновлении существующих товаров
+ * price пересчитывается по актуальному курсу/наценке из БД.
  */
 export async function POST() {
   try {
@@ -18,24 +20,29 @@ export async function POST() {
     if (!guard.ok) return guard.response
     const supabase = guard.admin
 
-    // 1) Категории AppRoute → upsert по slug, карта slug→uuid.
+    // 1) Категории AppRoute → upsert по slug, карта slug→{id,rate,markup}.
     const categories = buildCategories().filter((c) => c.supplier === 'approute')
-    const slugToId = new Map<string, string>()
+    const slugToMeta = new Map<string, { id: string; rate: number; markup: number }>()
+
     for (const cat of categories) {
       const { data: existing } = await supabase
         .from('categories')
-        .select('id')
+        .select('id, usd_to_rub_rate, markup_percent')
         .eq('slug', cat.slug)
         .maybeSingle()
+
       if (existing) {
-        slugToId.set(cat.slug, existing.id)
+        // Сохраняем rate/markup из БД (могут быть изменены через админку) — не перезаписываем из catalog.json.
+        slugToMeta.set(cat.slug, {
+          id: existing.id,
+          rate: Number(existing.usd_to_rub_rate ?? cat.usd_to_rub_rate),
+          markup: Number(existing.markup_percent ?? cat.markup_percent),
+        })
         await supabase
           .from('categories')
           .update({
             name: cat.name,
             icon: cat.icon,
-            markup_percent: cat.markup_percent,
-            usd_to_rub_rate: cat.usd_to_rub_rate,
             supplier: cat.supplier,
             sort_order: cat.sort_order,
             updated_at: new Date().toISOString(),
@@ -56,26 +63,42 @@ export async function POST() {
           })
           .select('id')
           .single()
-        if (created) slugToId.set(cat.slug, created.id)
+        if (created) {
+          slugToMeta.set(cat.slug, {
+            id: created.id,
+            rate: cat.usd_to_rub_rate,
+            markup: cat.markup_percent,
+          })
+        }
       }
     }
 
-    // 2) Товары AppRoute (цены уже посчитаны) → идемпотентный апсерт.
+    // 2) Товары AppRoute → идемпотентный апсерт с актуальной ценой по курсу/наценке из БД.
     const products = (await buildCatalogProducts()).filter((p) => p.supplier === 'approute')
     let imported = 0
     let updated = 0
     let failed = 0
     let sort = 0
+
     for (const p of products) {
-      const categoryId = slugToId.get(p.category_id) || slugToId.get(p.category?.slug || '')
-      if (!categoryId) continue
+      const categorySlug = p.category?.slug || ''
+      const meta = slugToMeta.get(categorySlug) || slugToMeta.get(p.category_id)
+      if (!meta) continue
+
+      // Цена пересчитывается по актуальным rate/markup из БД (не catalog.json).
+      // price_usd берём из продукта (если catalog.ts его заполнил), иначе — обратная формула.
+      const priceUsdRaw = (p as any).price_usd as number | null | undefined
+      const computedPrice =
+        priceUsdRaw != null && priceUsdRaw > 0
+          ? priceRub(priceUsdRaw, meta.rate, meta.markup)
+          : p.price
 
       const row = {
         name: p.name,
         description: p.description,
         type: p.type,
-        category_id: categoryId,
-        price: p.price,
+        category_id: meta.id,
+        price: computedPrice,
         stock: p.stock ?? null,
         is_active: p.is_active,
         supplier: p.supplier,
@@ -103,13 +126,12 @@ export async function POST() {
       }
 
       if (existingId) {
-        // Цена «поверх поставщика» управляется в админке — при ре-импорте не перетираем price,
-        // обновляем только поставщицкие поля и наличие (как в /api/products/import).
         const { error } = await supabase
           .from('products')
           .update({
             name: row.name,
             description: row.description,
+            price: row.price,
             stock: row.stock,
             is_active: row.is_active,
             min_amount: row.min_amount,
@@ -120,7 +142,6 @@ export async function POST() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingId)
-        // Не глотаем ошибку записи: иначе синк отрапортует success при реальном провале.
         if (error) {
           failed++
           console.error('[sync-approute] update failed', existingId, error.message)
@@ -152,4 +173,3 @@ export async function POST() {
     return NextResponse.json({ error: 'Не удалось синхронизировать каталог AppRoute' }, { status: 500 })
   }
 }
-

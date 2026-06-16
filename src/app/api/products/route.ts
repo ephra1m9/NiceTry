@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { buildCatalogProducts } from '@/lib/catalog'
+import { buildCatalogProducts, priceRub } from '@/lib/catalog'
 import type { Product } from '@/types'
 
 /**
@@ -118,6 +118,26 @@ interface FilterArgs {
 async function fallbackResponse(f: FilterArgs) {
   try {
     let products = await buildCatalogProducts()
+
+    // Пересчитываем цены по актуальной наценке/курсу из БД (иначе изменения в админке не видны).
+    try {
+      const supabase = await createClient()
+      const { data: cats } = await supabase.from('categories').select('slug, usd_to_rub_rate, markup_percent')
+      if (cats && cats.length > 0) {
+        const catMap = new Map<string, { rate: number; markup: number }>(
+          cats.map((c: any) => [c.slug, { rate: Number(c.usd_to_rub_rate), markup: Number(c.markup_percent ?? 0) }])
+        )
+        products = products.map((p) => {
+          const slug = p.category?.slug
+          const priceUsd = (p as any).price_usd as number | undefined
+          if (!slug || !priceUsd || priceUsd <= 0) return p
+          const cat = catMap.get(slug)
+          if (!cat || cat.rate <= 0) return p
+          return { ...p, price: priceRub(priceUsd, cat.rate, cat.markup) }
+        })
+      }
+    } catch { /* оставляем статические цены если БД недоступна */ }
+
     products = applyFilters(products, f)
     // Тот же микс по id, что и в боевом пути (иначе фолбэк идёт группами по бренду).
     products.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))

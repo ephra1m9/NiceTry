@@ -35,6 +35,7 @@ export interface Product {
     slug: string
   }
   price: number
+  price_usd?: number | null
   original_price?: number
   stock?: number
   is_active: boolean
