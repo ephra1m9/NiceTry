@@ -78,6 +78,23 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // Применяем наценку категории: price в БД всегда хранится как итоговая цена с наценкой.
+    let finalPrice = body.price
+    let finalOriginalPrice = body.original_price
+    if (body.category_id && body.price > 0) {
+      const { data: cat } = await supabase
+        .from('categories')
+        .select('markup_percent')
+        .eq('id', body.category_id)
+        .single()
+      const markup = Number(cat?.markup_percent ?? 0)
+      if (markup > 0) {
+        const factor = (100 + markup) / 100
+        finalPrice = Math.ceil(body.price * factor)
+        if (body.original_price > 0) finalOriginalPrice = Math.ceil(body.original_price * factor)
+      }
+    }
+
     const { data: product, error } = await supabase
       .from('products')
       .insert({
@@ -85,8 +102,8 @@ export async function POST(request: NextRequest) {
         description: body.description,
         type: body.type,
         category_id: body.category_id,
-        price: body.price,
-        original_price: body.original_price,
+        price: finalPrice,
+        original_price: finalOriginalPrice,
         stock: body.stock,
         is_active: body.is_active ?? true,
         supplier: body.supplier,

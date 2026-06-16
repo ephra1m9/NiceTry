@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 const ICONS: Record<string, JSX.Element> = {
   dashboard: <><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></>,
   products: <><path d="M21 16V8l-9-5-9 5v8l9 5z" /><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9" /></>,
+  categories: <><path d="M3 7h18M3 12h18M3 17h18" /><rect x="3" y="3" width="4" height="4" rx="0.5" /><rect x="3" y="10" width="4" height="4" rx="0.5" /><rect x="3" y="17" width="4" height="4" rx="0.5" /></>,
   orders: <><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" /></>,
   users: <><circle cx="9" cy="8" r="3.5" /><path d="M2 20a7 7 0 0114 0M17 4a3.5 3.5 0 010 7M22 20a7 7 0 00-5-6.7" /></>,
   promo: <><path d="M3 9V6a2 2 0 012-2h14a2 2 0 012 2v3a2 2 0 000 6v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-6z" /><path d="M12 7v10" strokeDasharray="2 3" /></>,
@@ -21,6 +22,7 @@ const ICONS: Record<string, JSX.Element> = {
 const MENU = [
   { href: '/admin', label: 'Dashboard', icon: 'dashboard' },
   { href: '/admin/products', label: 'Товары', icon: 'products' },
+  { href: '/admin/categories', label: 'Категории', icon: 'categories' },
   { href: '/admin/orders', label: 'Заказы', icon: 'orders' },
   { href: '/admin/users', label: 'Пользователи', icon: 'users' },
   { href: '/admin/promo-codes', label: 'Промокоды', icon: 'promo' },

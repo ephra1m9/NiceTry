@@ -8,6 +8,7 @@ interface Category {
   id: string
   name: string
   slug: string
+  markup_percent?: number
 }
 
 export default function NewProductPage() {
@@ -37,13 +38,19 @@ export default function NewProductPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/categories')
+      const res = await fetch('/api/admin/categories')
       const data = await res.json()
       setCategories(data.categories || [])
     } catch (error) {
       console.error('Failed to fetch categories:', error)
     }
   }
+
+  const selectedCategory = categories.find((c) => c.id === formData.category_id)
+  const markup = Number(selectedCategory?.markup_percent ?? 0)
+  const finalPrice = formData.price && markup > 0
+    ? Math.ceil(parseFloat(formData.price) * (100 + markup) / 100)
+    : formData.price ? parseFloat(formData.price) : null
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -182,7 +189,7 @@ export default function NewProductPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">
-                Цена (₽) *
+                {markup > 0 ? `Базовая цена (₽, без наценки ${markup}%)` : 'Цена (₽)'} *
               </label>
               <input
                 type="number"
@@ -194,11 +201,16 @@ export default function NewProductPage() {
                 min="0"
                 required
               />
+              {markup > 0 && finalPrice !== null && (
+                <p className="mt-1 text-xs text-muted">
+                  Итоговая цена на сайте: <strong>{finalPrice} ₽</strong>
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">
-                Старая цена (₽)
+                {markup > 0 ? `Старая цена (₽, без наценки)` : 'Старая цена (₽)'}
               </label>
               <input
                 type="number"

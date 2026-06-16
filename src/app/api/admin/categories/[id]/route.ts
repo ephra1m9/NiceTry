@@ -1,7 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/admin'
 
-const ALLOWED_FIELDS = ['name', 'icon', 'markup_percent', 'usd_to_rub_rate', 'is_active', 'sort_order'] as const
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const guard = await requireAdmin()
+    if (!guard.ok) return guard.response
+    const supabase = guard.admin
+
+    const { count } = await supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('category_id', params.id)
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: `Нельзя удалить: в категории есть ${count} товар(ов). Сначала удалите или перенесите товары.` },
+        { status: 409 }
+      )
+    }
+
+    const { error } = await supabase.from('categories').delete().eq('id', params.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 })
+  }
+}
+
+const ALLOWED_FIELDS = ['name', 'slug', 'icon', 'markup_percent', 'usd_to_rub_rate', 'is_active', 'sort_order'] as const
 const NUMERIC_FIELDS = new Set(['markup_percent', 'usd_to_rub_rate', 'sort_order'])
 const PRICE_FIELDS = new Set(['markup_percent', 'usd_to_rub_rate'])
 
