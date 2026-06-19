@@ -1,6 +1,7 @@
 {
   "_comment": "Маппинг таксономии AppRoute → внутренние категории NiceTry. Используется и TS-слоем (src/lib/approute/category-map.ts, боевой режим), и скриптом scripts/sync-approute.mjs. Сопоставление идёт по ключевым словам в полях сервиса AppRoute (categoryName / subcategoryName / section / name) без учёта регистра. Первое совпадение по порядку массива keywords выигрывает.",
   "psnRegions": ["US", "PL", "DE", "FR", "TR", "IN", "UK"],
+  "regionCodes": ["US", "PL", "DE", "FR", "TR", "IN", "UK", "AE", "VN", "EU", "HK", "ID", "RU", "AT", "BR", "KZ", "CA"],
   "regionAliases": {
     "GB": "UK",
     "UNITED KINGDOM": "UK",
@@ -11,7 +12,16 @@
     "FRANCE": "FR",
     "TURKEY": "TR",
     "TÜRKIYE": "TR",
-    "INDIA": "IN"
+    "INDIA": "IN",
+    "RUSSIA": "RU",
+    "KAZAKHSTAN": "KZ",
+    "CANADA": "CA",
+    "AUSTRIA": "AT",
+    "BRAZIL": "BR",
+    "VIETNAM": "VN",
+    "INDONESIA": "ID",
+    "HONG KONG": "HK",
+    "EUROPE": "EU"
   },
   "categories": [
     { "slug": "steam", "keywords": ["steam wallet", "steam gift card"] },

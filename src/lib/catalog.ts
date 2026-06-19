@@ -217,8 +217,15 @@ const SERVICES_TIMEOUT_MS = 1500
  * SERVICES_TIMEOUT_MS — используем статичный каталог из catalog.json (тот же источник,
  * что и в мок-режиме). Это устраняет задержку 4–8 с при недоступном AppRoute API.
  * Параллельные вызовы разделяют один pending-промис — нет двойного ожидания.
+ *
+ * opts.live=true — для явных админских действий синка (кнопка «Синхронизировать AppRoute»,
+ * /api/products/import): там задержка в несколько секунд приемлема, а тихая подмена боевых
+ * данных моком из-за гонки с SERVICES_TIMEOUT_MS — нет. Поэтому ждём listServices() без
+ * гонки с таймаутом (внутри у него свой APPROUTE_HTTP_TIMEOUT_MS, см. lib/approute/client.ts)
+ * и не используем/не пишем 30-секундный кэш витрины.
  */
-export async function buildCatalogProducts(): Promise<Product[]> {
+export async function buildCatalogProducts(opts?: { live?: boolean }): Promise<Product[]> {
+  if (opts?.live) return _doBuildCatalog({ live: true })
   if (_catalogCache && Date.now() - _catalogCache.ts < CATALOG_TTL_MS) {
     return _catalogCache.products
   }
@@ -227,23 +234,25 @@ export async function buildCatalogProducts(): Promise<Product[]> {
   return _buildPromise
 }
 
-async function _doBuildCatalog(): Promise<Product[]> {
+async function _doBuildCatalog(opts?: { live?: boolean }): Promise<Product[]> {
   const staticServices = mockServices().items
 
   const [services, games] = await Promise.all([
-    Promise.race([
-      listServices(),
-      new Promise<AppRouteService[]>((resolve) =>
-        setTimeout(() => resolve(staticServices), SERVICES_TIMEOUT_MS)
-      ),
-    ]).catch(() => staticServices),
+    opts?.live
+      ? listServices().catch(() => staticServices)
+      : Promise.race([
+          listServices(),
+          new Promise<AppRouteService[]>((resolve) =>
+            setTimeout(() => resolve(staticServices), SERVICES_TIMEOUT_MS)
+          ),
+        ]).catch(() => staticServices),
     listGames().catch(() => [] as DesslyGame[]),
   ])
 
   let sort = 0
   const all = [...appRouteProducts(services), ...desslyProducts(games), ...manualProducts()]
   const products = all.map((p) => ({ ...p, sort_order: sort++ } as Product & { sort_order: number }))
-  _catalogCache = { products, ts: Date.now() }
+  if (!opts?.live) _catalogCache = { products, ts: Date.now() }
   return products
 }
 

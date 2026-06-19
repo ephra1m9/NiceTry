@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
   const minPrice = searchParams.get('min_price')
   const maxPrice = searchParams.get('max_price')
   const search = searchParams.get('search')
-  const region = searchParams.get('region')
+  // Регион подставляется в PostgREST .or()-фильтр как часть синтаксиса (не как bind-параметр),
+  // поэтому ограничиваем алфавитом кодов регионов — иначе спецсимволы могли бы поломать сам фильтр.
+  const regionRaw = searchParams.get('region')
+  const region = regionRaw && /^[A-Za-z]{2,5}$/.test(regionRaw) ? regionRaw : null
   const limit = clampInt(searchParams.get('limit'), 50, 1, 200)
   const offset = clampInt(searchParams.get('offset'), 0, 0, 100000)
 
@@ -55,13 +58,25 @@ export async function GET(request: NextRequest) {
       if (minPrice) query = query.gte('price', parseFloat(minPrice))
       if (maxPrice) query = query.lte('price', parseFloat(maxPrice))
       if (search) query = query.ilike('name', `%${search}%`)
-      // Колонки region в БД нет — региональные SKU помечены суффиксом «... (XX)» в названии (см. sync-approute.mjs).
-      if (region) query = query.ilike('name', `%(${region})`)
+      // Не у всех региональных SKU регион вынесен в суффикс «... (XX)» названия (см. sync-approute.mjs) —
+      // часть товаров приходит от поставщика с регионом, зашитым в текст номинала, без суффикса.
+      // Поэтому матчим по обоим признакам: колонке region ИЛИ суффиксу в имени.
+      // PostgREST требует кавычки вокруг значений со скобками/запятыми внутри or()-фильтра,
+      // иначе "(" и ")" из паттерна парсятся как группировка условий, а не как часть значения.
+      if (region) query = query.or(`region.eq.${region},name.ilike."%(${region})"`)
 
       query = query.order('id', { ascending: true }).range(offset, offset + limit - 1)
 
       const { data: products, error, count } = await query
-      if (error || !products || products.length === 0) return null
+      if (error || !products) return null
+      // Пустой результат без фильтра по region — вероятно, категория ещё не засеяна, тогда
+      // осознанно уходим в фолбэк (см. комментарий к fallbackResponse). А пустой результат
+      // ПРИ заданном region — легитимный ответ ("нет товаров для этого региона"), и подменять
+      // его моком из другого региона/категории нельзя — иначе пользователь увидит чужие товары.
+      if (products.length === 0 && !region) return null
+      if (products.length === 0) {
+        return NextResponse.json({ products: [], total: 0, limit, offset })
+      }
 
       const categoryIds = Array.from(new Set(products.map((p: any) => p.category_id).filter(Boolean)))
       const categoryMap: Record<string, { id: string; name: string; slug: string }> = {}

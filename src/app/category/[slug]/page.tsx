@@ -55,6 +55,12 @@ const CATEGORY_REGIONS: Record<string, Array<{ value: string; label: string }>> 
     { value: 'PL', label: 'Польша' },
     { value: 'CA', label: 'Канада' },
   ],
+  google: [
+    { value: 'US', label: 'США' },
+    { value: 'TR', label: 'Турция' },
+    { value: 'IN', label: 'Индия' },
+    { value: 'PL', label: 'Польша' },
+  ],
 }
 
 const EMPTY_FILTERS: FilterState = {

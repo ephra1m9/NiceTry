@@ -159,6 +159,34 @@ function mapServiceToSlug(svc) {
   return null
 }
 
+// Зеркало normalizeRegion/extractRegion из src/lib/approute/category-map.ts — нужно, чтобы
+// region в БД заполнялся даже для SKU без явного suffix «(XX)» в названии (регион зашит в текст
+// от поставщика, например "TR — TRY 1500 ...").
+function normalizeRegion(raw) {
+  if (!raw) return null
+  const up = String(raw).trim().toUpperCase()
+  if (!up) return null
+  if (catMap.regionCodes.includes(up)) return up
+  const alias = catMap.regionAliases[up]
+  if (alias && catMap.regionCodes.includes(alias)) return alias
+  return null
+}
+function extractRegion(svc, den) {
+  const candidates = [den?.region, svc.countryCode, den?.name, svc.name]
+  for (const c of candidates) {
+    const direct = normalizeRegion(c)
+    if (direct) return direct
+    if (c) {
+      const matches = String(c).toUpperCase().match(/\b([A-Z]{2,})\b/g)
+      for (const token of matches ?? []) {
+        const norm = normalizeRegion(token)
+        if (norm) return norm
+      }
+    }
+  }
+  return null
+}
+
 // Боевой запрос списка сервисов AppRoute (envelope { data: { items } }).
 async function fetchLiveServices() {
   // Тот же исходящий прокси, что и в src/lib/approute/client.ts: при заданном
@@ -311,7 +339,7 @@ async function run() {
             category_id: categoryId, price: priceRub(den.price, rate, markup),
             stock: stockNum, is_active: stockNum > 0, supplier: 'approute',
             supplier_service_id: svc.id, denomination_id: denomId,
-            image_url: serviceImage(svc, den), sort_order: sort++,
+            image_url: serviceImage(svc, den), region: region || extractRegion(svc, den), sort_order: sort++,
           })
         }
       }

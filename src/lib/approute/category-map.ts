@@ -15,6 +15,10 @@ import type { AppRouteService, AppRouteDenomination } from './types'
 /** Регионы PSN, поддерживаемые на старте (строго по ТЗ/задаче). */
 export const PSN_REGIONS: readonly string[] = map.psnRegions
 
+/** Все коды регионов, встречающиеся в фильтрах любой категории (PSN/Steam/Roblox/AppStore и т.д.) —
+ * используется normalizeRegion/extractRegion, чтобы регион извлекался не только для PSN. */
+export const SUPPORTED_REGIONS: readonly string[] = map.regionCodes
+
 /** Внутренние slug'и категорий, которые мы импортируем из AppRoute. */
 export const REQUIRED_CATEGORY_SLUGS: readonly string[] = map.categories.map((c) => c.slug)
 
@@ -46,17 +50,17 @@ export function mapServiceToCategorySlug(
 }
 
 /**
- * Нормализует строку региона к коду из PSN_REGIONS (US/PL/DE/FR/TR/IN/UK).
- * Понимает алиасы (GB→UK, USA→US, «United Kingdom»→UK и т.п.). Возвращает null, если регион
- * не входит в поддерживаемый набор.
+ * Нормализует строку региона к коду из SUPPORTED_REGIONS (объединение регионов всех категорий —
+ * PSN/Steam/Roblox/AppStore и т.д., см. approute-category-map.json). Понимает алиасы (GB→UK,
+ * USA→US, «United Kingdom»→UK и т.п.). Возвращает null, если регион не входит в поддерживаемый набор.
  */
 export function normalizeRegion(raw: string | undefined | null): string | null {
   if (!raw) return null
   const up = raw.trim().toUpperCase()
   if (!up) return null
-  if (PSN_REGIONS.includes(up)) return up
+  if (SUPPORTED_REGIONS.includes(up)) return up
   const alias = (map.regionAliases as Record<string, string>)[up]
-  if (alias && PSN_REGIONS.includes(alias)) return alias
+  if (alias && SUPPORTED_REGIONS.includes(alias)) return alias
   return null
 }
 

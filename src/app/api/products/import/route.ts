@@ -81,7 +81,7 @@ export async function POST() {
     }
 
     // 2) Товары из поставщиков (цены уже посчитаны по формуле).
-    const products = await buildCatalogProducts()
+    const products = await buildCatalogProducts({ live: true })
     let imported = 0
     let updated = 0
     let sort = 0

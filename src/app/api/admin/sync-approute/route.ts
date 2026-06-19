@@ -74,7 +74,7 @@ export async function POST() {
     }
 
     // 2) Товары AppRoute → идемпотентный апсерт с актуальной ценой по курсу/наценке из БД.
-    const products = (await buildCatalogProducts()).filter((p) => p.supplier === 'approute')
+    const products = (await buildCatalogProducts({ live: true })).filter((p) => p.supplier === 'approute')
     let imported = 0
     let updated = 0
     let failed = 0
