@@ -23,6 +23,11 @@ interface ProxySettings {
   max_count: number
 }
 
+interface TelegramSettings {
+  markup_percent: number
+  usd_to_rub_rate: number
+}
+
 export default function AdminSettingsPage() {
   const [statuses, setStatuses] = useState<UserStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,10 +48,16 @@ export default function AdminSettingsPage() {
   const [proxySaving, setProxySaving] = useState(false)
   const [proxyMsg, setProxyMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
+  // Telegram Stars/Premium: наценка/курс (синглтон telegram_settings).
+  const [telegram, setTelegram] = useState<TelegramSettings | null>(null)
+  const [telegramSaving, setTelegramSaving] = useState(false)
+  const [telegramMsg, setTelegramMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
   useEffect(() => {
     fetchStatuses()
     fetchPopular()
     fetchProxy()
+    fetchTelegram()
   }, [])
 
   const fetchProxy = async () => {
@@ -90,6 +101,45 @@ export default function AdminSettingsPage() {
       setProxyMsg({ type: 'err', text: 'Ошибка сети при сохранении' })
     } finally {
       setProxySaving(false)
+    }
+  }
+
+  const fetchTelegram = async () => {
+    try {
+      const res = await fetch('/api/admin/telegram-settings', { cache: 'no-store' })
+      const data = await res.json()
+      if (data.settings) {
+        setTelegram(data.settings)
+      }
+    } catch (error) {
+      console.error('Failed to fetch telegram settings:', error)
+    }
+  }
+
+  const saveTelegram = async () => {
+    if (!telegram) return
+    setTelegramSaving(true)
+    setTelegramMsg(null)
+    try {
+      const res = await fetch('/api/admin/telegram-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markup_percent: telegram.markup_percent,
+          usd_to_rub_rate: telegram.usd_to_rub_rate,
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setTelegramMsg({ type: 'err', text: body.error || 'Не удалось сохранить' })
+        return
+      }
+      setTelegram(body.settings)
+      setTelegramMsg({ type: 'ok', text: 'Настройки Telegram сохранены' })
+    } catch (error) {
+      setTelegramMsg({ type: 'err', text: 'Ошибка сети при сохранении' })
+    } finally {
+      setTelegramSaving(false)
     }
   }
 
@@ -449,6 +499,68 @@ export default function AdminSettingsPage() {
                   data-loading={proxySaving ? 'true' : undefined}
                 >
                   Сохранить настройки прокси
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Telegram Stars / Premium: наценка и курс (синглтон telegram_settings) */}
+      <div className="card mb-6">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-[17px] font-bold text-navy">Telegram Stars и Premium</h2>
+          <p className="text-sm text-muted mt-1">
+            Наценка и курс USD→₽ для будущих продаж звёзд и Premium-подписки Telegram.
+          </p>
+        </div>
+
+        <div className="p-6">
+          {telegramMsg && (
+            <div className={`alert mb-4 ${telegramMsg.type === 'ok' ? 'alert-success' : 'alert-error'}`}>
+              <span>{telegramMsg.text}</span>
+            </div>
+          )}
+
+          {!telegram ? (
+            <div className="loading-block">
+              <div className="spinner" />
+              <span>Загрузка настроек...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+              <div>
+                <label className="label">Наценка (%)</label>
+                <input
+                  type="number"
+                  value={telegram.markup_percent}
+                  onChange={(e) => setTelegram({ ...telegram, markup_percent: parseFloat(e.target.value) })}
+                  className="input"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="label">Курс USD к рублю</label>
+                <input
+                  type="number"
+                  value={telegram.usd_to_rub_rate}
+                  onChange={(e) => setTelegram({ ...telegram, usd_to_rub_rate: parseFloat(e.target.value) })}
+                  className="input"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <button
+                  onClick={saveTelegram}
+                  disabled={telegramSaving}
+                  className="btn btn-primary"
+                  data-loading={telegramSaving ? 'true' : undefined}
+                >
+                  Сохранить настройки Telegram
                 </button>
               </div>
             </div>

@@ -10,6 +10,7 @@ import Spinner from '@/components/ui/Spinner'
 import TelegramLinkCard from '@/components/TelegramLinkCard'
 import OrdersSection from '@/components/OrdersSection'
 import ProxyOrdersSection from '@/components/ProxyOrdersSection'
+import TelegramOrdersSection from '@/components/TelegramOrdersSection'
 
 function initials(email?: string): string {
   if (!email) return 'NT'
@@ -156,6 +157,9 @@ export default function ProfilePage() {
 
         {/* Купленные прокси px6 (раздел скрывается, если их нет) */}
         <ProxyOrdersSection />
+
+        {/* Заявки на Telegram Stars/Premium (раздел скрывается, если их нет) */}
+        <TelegramOrdersSection />
       </div>
     </div>
   )

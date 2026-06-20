@@ -9,6 +9,7 @@ import { useCart } from '@/hooks/useCart'
 import { useTelegram } from '@/hooks/useTelegram'
 import { LEGAL_LINKS } from '@/components/Footer'
 import ProxyPurchase from '@/components/ProxyPurchase'
+import TelegramPurchase from '@/components/TelegramPurchase'
 import { TELEGRAM_CHANNEL_URL, hasLink } from '@/lib/links'
 
 /**
@@ -33,6 +34,9 @@ const CATNAV = [
 // Иконка категории «Купить прокси» (глобус) — открывает окно покупки, а не ссылку.
 const PROXY_ICON = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>'
 
+// Иконка Telegram Stars/Premium (самолётик) — открывает окно покупки, а не ссылку.
+const TELEGRAM_ICON = '<path d="M21 4L3 11l5 2 2 6 3-4 5 4z"/>'
+
 function initials(email?: string): string {
   if (!email) return 'NT'
   const name = email.split('@')[0]
@@ -53,6 +57,8 @@ export default function Header() {
   // пункт показываем только когда покупка прокси включена (proxy_settings.is_enabled).
   const [proxyOpen, setProxyOpen] = useState(false)
   const [proxyEnabled, setProxyEnabled] = useState(false)
+  // Окно покупки Telegram Stars/Premium (открывается из главной/событием nt:open-telegram).
+  const [telegramOpen, setTelegramOpen] = useState(false)
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,6 +103,40 @@ export default function Header() {
     setMenuOpen(false)
     setProxyOpen(true)
   }
+
+  // Внешний триггер открытия окна покупки прокси (например, плашка на главной).
+  useEffect(() => {
+    const onOpenProxy = () => {
+      if (proxyEnabled) openProxy()
+    }
+    window.addEventListener('nt:open-proxy', onOpenProxy)
+    return () => window.removeEventListener('nt:open-proxy', onOpenProxy)
+  }, [proxyEnabled])
+
+  // Блокируем фон и вешаем Esc, пока открыто окно покупки Telegram Stars/Premium.
+  useEffect(() => {
+    if (!telegramOpen) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setTelegramOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [telegramOpen])
+
+  // Открыть окно покупки Telegram Stars/Premium (и закрыть drawer, если открыт).
+  const openTelegram = () => {
+    setMenuOpen(false)
+    setTelegramOpen(true)
+  }
+
+  // Внешний триггер открытия окна покупки Telegram Stars/Premium (плашка на главной).
+  useEffect(() => {
+    const onOpenTelegram = () => openTelegram()
+    window.addEventListener('nt:open-telegram', onOpenTelegram)
+    return () => window.removeEventListener('nt:open-telegram', onOpenTelegram)
+  }, [])
 
   const go = (href: string) => {
     setMenuOpen(false)
@@ -289,12 +329,6 @@ export default function Header() {
               </svg>
               Скидки
             </Link>
-            {proxyEnabled && (
-              <button type="button" onClick={openProxy} title="Купить прокси">
-                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: PROXY_ICON }} />
-                Купить прокси
-              </button>
-            )}
             {user?.is_admin && (
               <Link href="/admin" style={{ marginLeft: 'auto', color: 'var(--blue-700)' }}>
                 <svg className="ic" viewBox="0 0 24 24">
@@ -352,12 +386,6 @@ export default function Header() {
             )}
 
             <nav className="drawer-nav">
-              {proxyEnabled && (
-                <button className="drawer-proxy" onClick={openProxy}>
-                  <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: PROXY_ICON }} />
-                  Купить прокси
-                </button>
-              )}
               <button onClick={() => go('/catalog')}>
                 <svg className="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
                 Все категории
@@ -439,6 +467,34 @@ export default function Header() {
             </div>
             <div className="proxy-modal-body">
               <ProxyPurchase embedded />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Окно покупки Telegram Stars/Premium — открывается с главной и по событию nt:open-telegram. */}
+      {telegramOpen && (
+        <div
+          className="proxy-modal-overlay"
+          onClick={() => setTelegramOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Купить Telegram Stars или Premium"
+        >
+          <div className="proxy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="proxy-modal-head">
+              <div className="proxy-modal-title">
+                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: TELEGRAM_ICON }} />
+                Telegram Stars и Premium
+              </div>
+              <button className="iconbtn" aria-label="Закрыть" onClick={() => setTelegramOpen(false)}>
+                <svg className="ic" viewBox="0 0 24 24">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+            <div className="proxy-modal-body">
+              <TelegramPurchase embedded />
             </div>
           </div>
         </div>

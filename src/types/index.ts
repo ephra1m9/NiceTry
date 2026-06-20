@@ -109,6 +109,11 @@ export interface ProxySettings {
   max_count: number
 }
 
+export interface TelegramSettings {
+  markup_percent: number
+  usd_to_rub_rate: number
+}
+
 export interface ProxyOrder {
   id: string
   user_id: string | null

@@ -124,13 +124,14 @@
 
 ---
 
-## ⚠️ ОТКРЫТО (НЕ доделано в коде)
-- **`risk`-флаг по группам товаров.** Параметр `risk` уже есть в `paymentCreate`
-  (`pay4game.ts`, тип `0 | 1`), но НЕ проставляется: `createLivePayment` его не передаёт, чекаут не считает.
-  Задача владельца: risk=5 для всех групп, risk=1 для TG Stars и пополнений Steam — требует
-  (1) расширить шкалу типа до 1..5, (2) решить, как идентифицировать low-risk группы (категория+тип
-  товара), (3) посчитать risk на чекауте по составу корзины и прокинуть через `PaymentOrderInput` →
-  `live.ts` → `paymentCreate`. НЕ реализовано.
+## ✅ ЗАКРЫТО: risk-флаг по группам товаров (см. коммит `4d5a26e`)
+- Шкала `risk` расширена до `1..5` (`PaymentOrderInput.risk`, `PaymentCreateInput.risk` в `pay4game.ts`).
+- `computeRisk()` в `order-math.ts`: risk=1 ТОЛЬКО если ВСЕ позиции корзины — `topup_auto`
+  (Steam-автопополнение / TG Stars), иначе risk=5; пустая корзина → 5 (консервативно).
+- `checkout/guest/route.ts` считает risk по составу корзины и передаёт в `createPayment` →
+  `live.ts` → `paymentCreate` (прокинуто по всей цепочке).
+- `/api/steam/topup/route.ts` — отдельный одноразовый флоу пополнения Steam, жёстко шлёт `risk: 1`.
+- Тесты: `tests/unit/order-math.test.ts` (`computeRisk`).
 
 ---
 

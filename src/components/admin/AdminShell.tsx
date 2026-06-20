@@ -15,6 +15,7 @@ const ICONS: Record<string, JSX.Element> = {
   banners: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="M21 16l-5-5-9 8" /></>,
   utm: <><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6" /></>,
   mailings: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></>,
+  telegram: <><path d="M21 4L3 11l5 2 2 6 3-4 5 4z" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" /></>,
   home: <><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></>,
 }
@@ -29,6 +30,7 @@ const MENU = [
   { href: '/admin/banners', label: 'Баннеры', icon: 'banners' },
   { href: '/admin/utm', label: 'UTM', icon: 'utm' },
   { href: '/admin/mailings', label: 'Рассылки', icon: 'mailings' },
+  { href: '/admin/telegram-orders', label: 'TG Stars/Premium', icon: 'telegram' },
   { href: '/admin/settings', label: 'Настройки', icon: 'settings' },
 ]
 

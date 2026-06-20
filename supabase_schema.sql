@@ -442,6 +442,57 @@ DROP POLICY IF EXISTS proxy_settings_public_read ON proxy_settings;
 CREATE POLICY proxy_settings_public_read ON proxy_settings
   FOR SELECT USING (TRUE);
 
+CREATE TABLE IF NOT EXISTS telegram_settings (
+  id              INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  markup_percent  DECIMAL(5, 2) NOT NULL DEFAULT 30 CHECK (markup_percent >= 0),
+  usd_to_rub_rate DECIMAL(8, 2) NOT NULL DEFAULT 100 CHECK (usd_to_rub_rate > 0),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+INSERT INTO telegram_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+ALTER TABLE telegram_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS telegram_settings_public_read ON telegram_settings;
+CREATE POLICY telegram_settings_public_read ON telegram_settings
+  FOR SELECT USING (TRUE);
+
+CREATE TABLE IF NOT EXISTS telegram_orders (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID REFERENCES users(id) ON DELETE SET NULL,
+  product_type        TEXT NOT NULL CHECK (product_type IN ('stars', 'premium')),
+  amount              INTEGER NOT NULL CHECK (amount > 0),
+  recipient_username  TEXT NOT NULL,
+  price_usd           DECIMAL(10, 2) NOT NULL CHECK (price_usd > 0),
+  price_rub           DECIMAL(10, 2) NOT NULL CHECK (price_rub >= 0),
+  status              TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed')),
+  idempotency_key     TEXT UNIQUE,
+  denomination_id     TEXT,
+  supplier_order_id   TEXT,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_telegram_orders_user    ON telegram_orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_telegram_orders_status  ON telegram_orders(status);
+CREATE INDEX IF NOT EXISTS idx_telegram_orders_created ON telegram_orders(created_at DESC);
+ALTER TABLE telegram_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS telegram_orders_select_own ON telegram_orders;
+CREATE POLICY telegram_orders_select_own ON telegram_orders
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS telegram_packages (
+  id           TEXT PRIMARY KEY,
+  product_type TEXT NOT NULL CHECK (product_type IN ('stars', 'premium')),
+  amount       INTEGER NOT NULL CHECK (amount > 0),
+  label        TEXT NOT NULL,
+  price_usd    DECIMAL(10, 4) NOT NULL CHECK (price_usd > 0),
+  service_id   TEXT NOT NULL,
+  sort_order   INTEGER NOT NULL DEFAULT 0,
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_telegram_packages_type ON telegram_packages(product_type, sort_order);
+ALTER TABLE telegram_packages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS telegram_packages_public_read ON telegram_packages;
+CREATE POLICY telegram_packages_public_read ON telegram_packages
+  FOR SELECT USING (TRUE);
+
 -- ============================================
 -- КОММЕНТАРИИ
 -- ============================================

@@ -137,20 +137,24 @@ export default function HomePage() {
                 Пополнить Steam
               </Link>
             </div>
-            {/* Правая половина: каталог подписок и карт оплаты */}
+            {/* Правая половина: покупка прокси (открывает окно покупки из шапки) */}
             <div className="promo cards">
               <div className="deco" />
               <span
                 className="badge"
                 style={{ background: 'rgba(255,255,255,.15)', color: '#dfe6ff', width: 'max-content', marginBottom: 10 }}
               >
-                Подписки · карты для оплаты
+                IPv4 / IPv6 · любая страна
               </span>
-              <h2>Подписки и карты для оплаты</h2>
-              <p>Gift-карты, подписки и платёжные карты для оплаты сервисов — выдача за секунды.</p>
-              <Link className="btn btn-primary btn-lg" href="/catalog">
-                Открыть каталог
-              </Link>
+              <h2>Купи прокси за секунды</h2>
+              <p>HTTP(S) и SOCKS5 прокси под любую задачу — автоматическая выдача сразу после оплаты.</p>
+              <button
+                type="button"
+                className="btn btn-primary btn-lg"
+                onClick={() => window.dispatchEvent(new CustomEvent('nt:open-proxy'))}
+              >
+                Купить прокси
+              </button>
             </div>
           </div>
           <div className="promo side">
@@ -158,13 +162,17 @@ export default function HomePage() {
               <svg className="ic ic-sm" viewBox="0 0 24 24">
                 <path d="M21 4L3 11l5 2 2 6 3-4 5 4z" />
               </svg>
-              TELEGRAM-КАНАЛ
+              TELEGRAM
             </span>
-            <h3>Розыгрыши и промокоды до –20%</h3>
-            <p style={{ maxWidth: '100%' }}>Первыми узнавайте о скидках и новых позициях.</p>
-            <a className="btn btn-secondary" href="#">
-              Подписаться
-            </a>
+            <h3>TG Stars и Premium</h3>
+            <p style={{ maxWidth: '100%' }}>Звёзды и Premium-подписка Telegram — оплата с баланса, отправка получателю за пару часов.</p>
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              onClick={() => window.dispatchEvent(new CustomEvent('nt:open-telegram'))}
+            >
+              Купить
+            </button>
           </div>
         </div>
       )}
