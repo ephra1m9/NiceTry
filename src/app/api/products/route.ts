@@ -26,10 +26,12 @@ export async function GET(request: NextRequest) {
   // поэтому ограничиваем алфавитом кодов регионов — иначе спецсимволы могли бы поломать сам фильтр.
   const regionRaw = searchParams.get('region')
   const region = regionRaw && /^[A-Za-z]{2,5}$/.test(regionRaw) ? regionRaw : null
+  const sortRaw = searchParams.get('sort')
+  const sort = sortRaw && SORT_VALUES.has(sortRaw) ? sortRaw : null
   const limit = clampInt(searchParams.get('limit'), 50, 1, 200)
   const offset = clampInt(searchParams.get('offset'), 0, 0, 100000)
 
-  const filterArgs = { categoryId, categorySlug, cats, types, type, supplier, minPrice, maxPrice, search, region, limit, offset }
+  const filterArgs = { categoryId, categorySlug, cats, types, type, supplier, minPrice, maxPrice, search, region, sort, limit, offset }
 
   // Supabase-путь с таймаутом: если БД не ответила за 1.5с — сразу фолбэк.
   // Это устраняет задержку 4–8с при недоступном/медленном Supabase.
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
       // иначе "(" и ")" из паттерна парсятся как группировка условий, а не как часть значения.
       if (region) query = query.or(`region.eq.${region},name.ilike."%(${region})"`)
 
-      query = query.order('id', { ascending: true }).range(offset, offset + limit - 1)
+      query = applySort(query, sort).range(offset, offset + limit - 1)
 
       const { data: products, error, count } = await query
       if (error || !products) return null
@@ -126,8 +128,30 @@ interface FilterArgs {
   maxPrice: string | null
   search: string | null
   region: string | null
+  sort: string | null
   limit: number
   offset: number
+}
+
+/** Допустимые значения параметра sort — белый список, остальное игнорируется. */
+const SORT_VALUES = new Set(['price_asc', 'price_desc', 'name_asc', 'name_desc', 'new'])
+
+/** Применяет сортировку к Supabase-запросу. Без sort/неизвестного значения — стабильный порядок по id, как раньше. */
+function applySort(query: any, sort: string | null) {
+  switch (sort) {
+    case 'price_asc':
+      return query.order('price', { ascending: true })
+    case 'price_desc':
+      return query.order('price', { ascending: false })
+    case 'name_asc':
+      return query.order('name', { ascending: true })
+    case 'name_desc':
+      return query.order('name', { ascending: false })
+    case 'new':
+      return query.order('created_at', { ascending: false })
+    default:
+      return query.order('id', { ascending: true })
+  }
 }
 
 async function fallbackResponse(f: FilterArgs) {
@@ -154,8 +178,7 @@ async function fallbackResponse(f: FilterArgs) {
     } catch { /* оставляем статические цены если БД недоступна */ }
 
     products = applyFilters(products, f)
-    // Тот же микс по id, что и в боевом пути (иначе фолбэк идёт группами по бренду).
-    products.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    sortProducts(products, f.sort)
     const total = products.length
     const paged = products.slice(f.offset, f.offset + f.limit)
     return NextResponse.json({ products: paged, total, limit: f.limit, offset: f.offset, source: 'catalog-fallback' })
@@ -184,6 +207,29 @@ function applyFilters(products: Product[], f: FilterArgs): Product[] {
     if (f.region && p.region !== f.region && !p.name.includes(`(${f.region})`)) return false
     return p.is_active
   })
+}
+
+/** Сортирует фолбэк-каталог in-place. Без sort — микс по id (иначе товары идут группами по бренду). */
+function sortProducts(products: Product[], sort: string | null): void {
+  switch (sort) {
+    case 'price_asc':
+      products.sort((a, b) => a.price - b.price)
+      return
+    case 'price_desc':
+      products.sort((a, b) => b.price - a.price)
+      return
+    case 'name_asc':
+      products.sort((a, b) => a.name.localeCompare(b.name))
+      return
+    case 'name_desc':
+      products.sort((a, b) => b.name.localeCompare(a.name))
+      return
+    case 'new':
+      products.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+      return
+    default:
+      products.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  }
 }
 
 function clampInt(raw: string | null, def: number, min: number, max: number): number {

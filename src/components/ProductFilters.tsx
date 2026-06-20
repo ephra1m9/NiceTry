@@ -21,6 +21,7 @@ export interface FilterState {
   min_price: string
   max_price: string
   region: string
+  sort: string
 }
 
 const EMPTY: FilterState = {
@@ -30,6 +31,7 @@ const EMPTY: FilterState = {
   min_price: '',
   max_price: '',
   region: '',
+  sort: '',
 }
 
 const PRODUCT_TYPES = [
@@ -38,6 +40,15 @@ const PRODUCT_TYPES = [
   { value: 'topup_auto', label: 'Автопополнение' },
   { value: 'topup_manual', label: 'Ручное пополнение' },
   { value: 'manual', label: 'Ручная обработка' },
+]
+
+const SORT_OPTIONS = [
+  { value: '', label: 'По умолчанию' },
+  { value: 'price_asc', label: 'Цена: сначала дешёвые' },
+  { value: 'price_desc', label: 'Цена: сначала дорогие' },
+  { value: 'name_asc', label: 'Название: А-Я' },
+  { value: 'name_desc', label: 'Название: Я-А' },
+  { value: 'new', label: 'Сначала новые' },
 ]
 
 
@@ -75,6 +86,23 @@ export function ProductFilters({ onFilterChange, categories = [], defaultExpande
             value={filters.search}
             onChange={(e) => handleChange('search', e.target.value)}
           />
+        </div>
+
+        {/* Сортировка — всегда видна */}
+        <div className="mb-3">
+          <label className="label" htmlFor="f-sort">Сортировка</label>
+          <select
+            id="f-sort"
+            value={filters.sort}
+            onChange={(e) => handleChange('sort', e.target.value)}
+            className="input"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Фильтр по цене — всегда виден */}

@@ -70,6 +70,7 @@ const EMPTY_FILTERS: FilterState = {
   min_price: '',
   max_price: '',
   region: '',
+  sort: '',
 }
 
 export default function CategoryPage() {
@@ -99,6 +100,7 @@ export default function CategoryPage() {
     if (filters.min_price) p.append('min_price', filters.min_price)
     if (filters.max_price) p.append('max_price', filters.max_price)
     if (filters.region) p.append('region', filters.region)
+    if (filters.sort) p.append('sort', filters.sort)
     return p
   }
 

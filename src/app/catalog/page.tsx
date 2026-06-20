@@ -41,6 +41,7 @@ function CatalogContent() {
     min_price: '',
     max_price: '',
     region: '',
+    sort: '',
   })
 
   // Грузит страницу товаров. append=false — первая страница (сброс при смене фильтров),
