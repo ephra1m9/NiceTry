@@ -9,6 +9,7 @@ import { RegionTabs } from '@/components/RegionTabs'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
+import { formatProductTitle } from '@/lib/utils'
 
 const PAGE_SIZE = 50
 
@@ -179,7 +180,7 @@ export default function CategoryPage() {
         items={[
           { label: 'Главная', href: '/' },
           { label: 'Каталог', href: '/catalog' },
-          { label: category.name },
+          { label: formatProductTitle(category.name) },
         ]}
       />
 
@@ -194,7 +195,7 @@ export default function CategoryPage() {
           </span>
         )}
         <div className="min-w-0">
-          <h1 className="truncate">{category.name}</h1>
+          <h1 className="truncate">{formatProductTitle(category.name)}</h1>
           <p className="text-muted text-sm mt-0.5">
             {total > 0 ? `${total} товаров` : 'Категория'}
           </p>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Button from './ui/Button'
 import Input from './ui/Input'
 import Card from './ui/Card'
+import { formatProductTitle } from '@/lib/utils'
 
 interface ProductFiltersProps {
   onFilterChange: (filters: FilterState) => void
@@ -168,7 +169,7 @@ export function ProductFilters({ onFilterChange, categories = [], defaultExpande
                   <option value="">Все категории</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                      {formatProductTitle(cat.name)}
                     </option>
                   ))}
                 </select>

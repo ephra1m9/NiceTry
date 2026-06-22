@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/useUser'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Card from '@/components/ui/Card'
+import { formatProductTitle } from '@/lib/utils'
 
 export default function CartPage() {
   const router = useRouter()
@@ -95,7 +96,7 @@ export default function CartPage() {
                     }
                   >
                     {item.product.image_url ? (
-                      <img src={item.product.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                      <img src={item.product.image_url} alt={formatProductTitle(item.product.name)} className="w-full h-full object-cover" />
                     ) : (
                       item.product.name.charAt(0).toUpperCase()
                     )}
@@ -104,7 +105,7 @@ export default function CartPage() {
                   {/* Информация */}
                   <div className="flex-1 min-w-0">
                     <Link href={`/product/${item.product.id}`} className="font-semibold text-navy hover:text-blue-700 transition-colors line-clamp-2">
-                      {item.product.name}
+                      {formatProductTitle(item.product.name)}
                     </Link>
 
                     {item.customAmount ? (

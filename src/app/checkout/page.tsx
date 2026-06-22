@@ -11,6 +11,7 @@ import Card from '@/components/ui/Card'
 import Alert from '@/components/ui/Alert'
 import Input from '@/components/ui/Input'
 import { NICKNAME_MIN, NICKNAME_MAX } from '@/lib/auth/nickname'
+import { formatProductTitle } from '@/lib/utils'
 
 // Гостевой чекаут на ЗАГЛУШКЕ оплаты (PAYMENTS_MODE=mock):
 //   шаг 'form'     — почта + способ оплаты → оплатить;
@@ -438,7 +439,7 @@ export default function CheckoutPage() {
                     className="flex justify-between items-start gap-3 pb-3 border-b border-border-2 last:border-0 last:pb-0"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-navy truncate">{item.product.name}</div>
+                      <div className="font-semibold text-navy truncate">{formatProductTitle(item.product.name)}</div>
                       {item.customAmount ? (
                         <div className="text-sm text-muted">Сумма: {formatPrice(item.customAmount)}</div>
                       ) : (

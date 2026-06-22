@@ -10,6 +10,7 @@ import Input from '@/components/ui/Input'
 import Spinner from '@/components/ui/Spinner'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { useCart } from '@/hooks/useCart'
+import { formatProductTitle } from '@/lib/utils'
 
 export default function ProductPage() {
   const params = useParams()
@@ -97,6 +98,7 @@ export default function ProductPage() {
     )
   }
 
+  const displayName = formatProductTitle(product.name)
   const hasDiscount = product.original_price && product.original_price > product.price
   const discountPercent = hasDiscount
     ? Math.round(((product.original_price! - product.price) / product.original_price!) * 100)
@@ -130,9 +132,9 @@ export default function ProductPage() {
           { label: 'Главная', href: '/' },
           { label: 'Каталог', href: '/catalog' },
           ...(product.category
-            ? [{ label: product.category.name, href: `/category/${product.category.slug}` }]
+            ? [{ label: formatProductTitle(product.category.name), href: `/category/${product.category.slug}` }]
             : []),
-          { label: product.name },
+          { label: displayName },
         ]}
       />
 
@@ -143,7 +145,7 @@ export default function ProductPage() {
             {product.image_url && !imgError ? (
               <img
                 src={product.image_url}
-                alt={product.name}
+                alt={displayName}
                 onError={() => setImgError(true)}
                 className="absolute inset-0 w-full h-full object-cover"
               />
@@ -157,11 +159,11 @@ export default function ProductPage() {
             <div className="relative z-10">
               {product.category && (
                 <div className="text-[11px] uppercase tracking-wide font-semibold text-white/80 mb-1">
-                  {product.category.name}
+                  {formatProductTitle(product.category.name)}
                 </div>
               )}
               <div className="text-white font-extrabold text-2xl leading-tight drop-shadow">
-                {product.name}
+                {displayName}
               </div>
             </div>
             {hasDiscount && (
@@ -187,7 +189,7 @@ export default function ProductPage() {
               ))}
           </div>
 
-          <h1 className="mb-3">{product.name}</h1>
+          <h1 className="mb-3">{displayName}</h1>
 
           {product.description && <p className="text-muted mb-5">{product.description}</p>}
 

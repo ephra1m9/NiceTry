@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Product, Category } from '@/types'
 import { PCard } from '@/components/PCard'
+import { formatProductTitle } from '@/lib/utils'
 
 /**
  * Главная страница — витрина по эталону index.html (#view-home):
@@ -213,7 +214,7 @@ export default function HomePage() {
                     />
                   )}
                 </div>
-                <div className="nm">{cat.name}</div>
+                <div className="nm">{formatProductTitle(cat.name)}</div>
                 <div className="ct">
                   {count > 0
                     ? `${count} ${plural(count, ['товар', 'товара', 'товаров'])}`

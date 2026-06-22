@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Product } from '@/types'
 import { useCart } from '@/hooks/useCart'
+import { formatProductTitle } from '@/lib/utils'
 
 /**
  * Карточка товара в стиле эталона index.html (.pcard):
@@ -85,7 +86,8 @@ export function PCard({ product }: { product: Product }) {
     ? `url("${product.image_url}") center / cover no-repeat, ${gradient}`
     : gradient
   const plat = (platform ?? product.category?.name ?? 'NiceTry').toUpperCase()
-  const ttl = product.name.split(' — ')[0]
+  const displayName = formatProductTitle(product.name)
+  const ttl = displayName.split(' — ')[0]
 
   const isTopup = product.type === 'topup_auto' || product.type === 'topup_manual'
   const inStock = !(product.type === 'instant' && product.stock != null && product.stock <= 0)
@@ -122,7 +124,7 @@ export function PCard({ product }: { product: Product }) {
         style={{ background: cover }}
         onClick={() => router.push(href)}
         role="link"
-        aria-label={product.name}
+        aria-label={displayName}
       >
         <div className="topbadges">
           {hot ? (
@@ -147,7 +149,7 @@ export function PCard({ product }: { product: Product }) {
       {/* Тело */}
       <div className="body">
         <Link href={href} className="nm">
-          {product.name}
+          {displayName}
         </Link>
 
         <div className="meta">

@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
+import { formatProductTitle } from '@/lib/utils'
 
 interface Order {
   id: string
@@ -112,7 +113,7 @@ export default function OrderPage() {
                 <div key={item.id} className="pb-4 border-b border-border-2 last:border-0 last:pb-0">
                   <div className="flex justify-between items-start gap-3 mb-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="truncate">{item.product_name}</h3>
+                      <h3 className="truncate">{formatProductTitle(item.product_name)}</h3>
                       <p className="text-sm text-muted">{formatPrice(item.price)} × {item.quantity}</p>
                     </div>
                     <div className="text-right flex-none">

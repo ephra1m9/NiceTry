@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import { formatProductTitle } from '@/lib/utils'
 
 /**
  * Раздел «Заказы» в профиле (сайт + Mini App).
@@ -154,7 +155,7 @@ function OrderCard({ order }: { order: OrderRow }) {
         {order.items.slice(0, 3).map((item) => (
           <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
             <span className="text-ink truncate">
-              {item.product_name}
+              {formatProductTitle(item.product_name)}
               {item.quantity > 1 && <span className="text-muted-2"> × {item.quantity}</span>}
             </span>
             <span className="text-muted whitespace-nowrap">{formatPrice(item.price)}</span>

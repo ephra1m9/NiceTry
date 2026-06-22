@@ -421,8 +421,8 @@
   /* Сетка товаров + карточка */
   .prod-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
   }
   .prod-grid.cols-4 {
     grid-template-columns: repeat(4, 1fr);
@@ -607,7 +607,7 @@
 /* Адаптив витрины (как в index.html) */
 @media (max-width: 1080px) {
   .prod-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
   .cat-tiles {
     grid-template-columns: repeat(4, 1fr);
