@@ -6,6 +6,7 @@ import { buildCatalogProducts, buildCategories, priceRub } from '@/lib/catalog'
 import { AppRouteError } from '@/lib/approute'
 import { resolvePackage } from '@/lib/dessly'
 import { deliverInstant, DeliveryPendingError } from '@/lib/delivery'
+import { safeGetOrCreateChat, safePostSystemMessage } from '@/lib/chat'
 import { notifyOrderDelivered } from '@/lib/telegram/notify'
 import { REFERRAL_PERCENTS } from '@/lib/constants'
 import {
@@ -228,6 +229,9 @@ export async function POST(request: NextRequest) {
 
     // 6) Создание позиций + выдача (Контур B).
     const deliveredItems: Array<{ product_name: string; voucher_code: string }> = []
+    // Позиции без авто-выдачи (topup/manual, асинхронные DeliveryPendingError) — для summary
+    // сообщения в чат заказа: их закроет менеджер.
+    const pendingNames: string[] = []
     // Позиции, за которые покупатель реально платит (выданные + ручные в работе) — без
     // проваленных/возвращённых: только по ним начисляется реферальный бонус.
     const chargedLines: Line[] = []
@@ -278,6 +282,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (deliveryStatus !== 'failed') chargedLines.push(line)
+      if (deliveryStatus === 'pending') pendingNames.push(product.name)
 
       await supabaseAdmin.from('order_items').insert({
         order_id: order.id,
@@ -301,6 +306,27 @@ export async function POST(request: NextRequest) {
       newStatus = 'cancelled'
     } else {
       newStatus = 'paid'
+    }
+
+    // Чат заказа: создаём, если есть хоть что-то, что покупатель реально получит/ждёт
+    // (cancelled = полный возврат, переписываться там не о чём). Авто-выданные позиции
+    // приходят системным сообщением с кодом; позиции без авто-выдачи — одним summary.
+    if (newStatus !== 'cancelled') {
+      const chatResult = await safeGetOrCreateChat(order.id, authUser.id)
+      if (chatResult) {
+        const { chat } = chatResult
+        // Одно сообщение на все выданные позиции — меньше round-trip'ов на заказ, чище в чате.
+        if (deliveredItems.length > 0) {
+          const lines = deliveredItems.map((d) => `📦 ${d.product_name}\n🔑 ${d.voucher_code}`)
+          await safePostSystemMessage(chat.id, lines.join('\n\n'))
+        }
+        if (pendingNames.length > 0) {
+          await safePostSystemMessage(
+            chat.id,
+            `⏳ Эти позиции в обработке у менеджера, ожидайте сообщения здесь:\n${pendingNames.map((n) => `• ${n}`).join('\n')}`
+          )
+        }
+      }
     }
 
     // Возврат на баланс за непоставленные (failed) позиции (ТЗ §5.4): пропорционально их доле

@@ -127,48 +127,54 @@ export default function OrdersSection() {
 function OrderCard({ order }: { order: OrderRow }) {
   const itemCount = order.items.reduce((s, i) => s + (i.quantity || 1), 0)
   const hasKeys = order.items.some((i) => i.voucher_code)
+  const hasChat = order.status === 'paid' || order.status === 'delivered'
 
   return (
-    <Link
-      href={`/orders/${order.id}`}
-      className="block rounded-lg border border-border bg-white p-4 transition-colors hover:border-blue-200 focus:outline-none focus-visible:border-blue"
-    >
-      {/* Шапка: номер + дата + статус */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <div className="font-semibold text-navy">#{order.order_number}</div>
-          <div className="text-[12.5px] text-muted-2 mt-0.5">
-            {new Date(order.created_at).toLocaleString('ru-RU', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+    <div className="rounded-lg border border-border bg-white p-4 transition-colors hover:border-blue-200">
+      <Link href={`/orders/${order.id}`} className="block focus:outline-none">
+        {/* Шапка: номер + дата + статус */}
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="font-semibold text-navy">#{order.order_number}</div>
+            <div className="text-[12.5px] text-muted-2 mt-0.5">
+              {new Date(order.created_at).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </div>
           </div>
+          <Badge variant={getStatusVariant(order.status)}>{getStatusLabel(order.status)}</Badge>
         </div>
-        <Badge variant={getStatusVariant(order.status)}>{getStatusLabel(order.status)}</Badge>
-      </div>
 
-      {/* Состав */}
-      <div className="mt-3 space-y-1.5">
-        {order.items.slice(0, 3).map((item) => (
-          <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
-            <span className="text-ink truncate">
-              {formatProductTitle(item.product_name)}
-              {item.quantity > 1 && <span className="text-muted-2"> × {item.quantity}</span>}
-            </span>
-            <span className="text-muted whitespace-nowrap">{formatPrice(item.price)}</span>
-          </div>
-        ))}
-        {order.items.length > 3 && (
-          <div className="text-[12.5px] text-muted-2">и ещё {order.items.length - 3}…</div>
-        )}
-      </div>
+        {/* Состав */}
+        <div className="mt-3 space-y-1.5">
+          {order.items.slice(0, 3).map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-ink truncate">
+                {formatProductTitle(item.product_name)}
+                {item.quantity > 1 && <span className="text-muted-2"> × {item.quantity}</span>}
+              </span>
+              <span className="text-muted whitespace-nowrap">{formatPrice(item.price)}</span>
+            </div>
+          ))}
+          {order.items.length > 3 && (
+            <div className="text-[12.5px] text-muted-2">и ещё {order.items.length - 3}…</div>
+          )}
+        </div>
+      </Link>
 
-      {/* Низ: метаданные слева, сумма справа */}
+      {/* Низ: метаданные/действия слева, сумма справа */}
       <div className="mt-3 pt-3 border-t border-border-2 flex items-end justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
+          {hasChat && (
+            <Link href={`/orders/${order.id}#chat`} className="btn btn-sm btn-secondary">
+              <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
+              Чат
+            </Link>
+          )}
           <span className="badge">{paymentLabel(order.payment_method)}</span>
           {order.promo?.code && <span className="badge badge-instant">Промокод {order.promo.code}</span>}
           {order.discount_amount > 0 && (
@@ -186,7 +192,7 @@ function OrderCard({ order }: { order: OrderRow }) {
           <div className="text-lg font-extrabold text-navy leading-none">{formatPrice(order.final_amount)}</div>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 

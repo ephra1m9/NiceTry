@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getTransactionStatus } from '@/lib/dessly'
 import { notifyOrderDelivered } from '@/lib/telegram/notify'
+import { getChatByOrder, safePostSystemMessage } from '@/lib/chat'
 import { proportionalRefund } from '@/lib/order-math'
 import { CRON_SECRET } from '@/lib/telegram/config'
 
@@ -96,6 +97,11 @@ export async function GET(request: NextRequest) {
           items.map((it: any) => ({ product_name: it.product_name, voucher_code: voucher }))
         )
       }
+      const chat = await getChatByOrder(order.id)
+      if (chat) {
+        const lines = items.map((it: any) => `📦 ${it.product_name}\n🔑 ${voucher}`)
+        await safePostSystemMessage(chat.id, lines.join('\n\n'))
+      }
       delivered++
       continue
     }
@@ -143,6 +149,11 @@ export async function GET(request: NextRequest) {
     const hasPending = (remaining || []).some((r) => r.delivery_status === 'pending')
     const newStatus = !hasDelivered && !hasPending ? 'cancelled' : 'paid'
     await supabaseAdmin.from('orders').update({ status: newStatus }).eq('id', order.id)
+    const failChat = await getChatByOrder(order.id)
+    if (failChat) {
+      const lines = items.map((it: any) => `⚠️ Не удалось доставить «${it.product_name}», средства возвращены на баланс.`)
+      await safePostSystemMessage(failChat.id, lines.join('\n'))
+    }
     failed++
   }
 

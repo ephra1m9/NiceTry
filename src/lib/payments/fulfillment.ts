@@ -15,6 +15,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { deliverInstant, DeliveryPendingError } from '@/lib/delivery'
+import { safeGetOrCreateChat, safePostSystemMessage } from '@/lib/chat'
 import type { Product } from '@/types'
 
 export interface DeliverResult {
@@ -30,7 +31,7 @@ export interface DeliverResult {
 export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: string): Promise<DeliverResult> {
   const { data: order } = await supabaseAdmin
     .from('orders')
-    .select('id, status, promo_code_id')
+    .select('id, status, promo_code_id, user_id')
     .eq('supplier_reference_id', invoiceId)
     .maybeSingle()
 
@@ -60,13 +61,25 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
     return { delivered: false, alreadyDelivered: true, orderId: order.id }
   }
 
+  // Чат с покупателем (один на заказ, лениво создаётся ровно тут — момент первой оплаты).
+  // created=true только при первом проходе (см. гейт status='new' выше), поэтому summary-
+  // сообщение по pending-позициям ниже не задублируется при ретраях вебхука. Best-effort:
+  // сбой чата не должен ронять выдачу (см. safeGetOrCreateChat).
+  const chatResult = await safeGetOrCreateChat(order.id, order.user_id)
+  const chat = chatResult?.chat ?? null
+  const chatCreated = chatResult?.created ?? false
+  const pendingNames: string[] = []
+  // Одно сообщение на ВСЕ выданные позиции (а не по сообщению на позицию) — меньше сетевых
+  // round-trip'ов на заказ и чище выглядит в чате при многотоварной корзине.
+  const deliveredLines: string[] = []
+
   // Выдаём позиции, которым ещё не выдан код. Только instant выдаётся автоматически
   // (AppRoute/Dessly/локальные ключи через deliverInstant). topup_*/manual и позиции без
   // product_id остаются 'pending' (закрывает менеджер). Заказ доводим до 'delivered' только
   // если ВСЕ позиции выданы; иначе оставляем 'paid' (в работе).
   const { data: items } = await supabaseAdmin
     .from('order_items')
-    .select('id, product_id, quantity, voucher_code, delivery_status, form_data')
+    .select('id, product_id, product_name, quantity, voucher_code, delivery_status, form_data')
     .eq('order_id', order.id)
 
   let allDelivered = true
@@ -76,6 +89,7 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
     // Без product_id (фолбэк-каталог) — выдаёт менеджер.
     if (!it.product_id) {
       allDelivered = false
+      pendingNames.push(it.product_name)
       continue
     }
 
@@ -88,6 +102,7 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
     // Только instant выдаётся автоматически; остальные типы — ручная обработка.
     if (!product || product.type !== 'instant') {
       allDelivered = false
+      pendingNames.push(it.product_name)
       continue
     }
 
@@ -101,6 +116,7 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
           .from('order_items')
           .update({ voucher_code: codes.join('\n'), delivery_status: 'delivered' })
           .eq('id', it.id)
+        deliveredLines.push(`📦 ${it.product_name}\n🔑 ${codes.join('\n')}`)
         continue
       }
       console.warn('[payments/fulfillment] выдача без кодов для', it.product_id)
@@ -113,6 +129,17 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
       }
     }
     allDelivered = false
+    pendingNames.push(it.product_name)
+  }
+
+  if (chat && deliveredLines.length > 0) {
+    await safePostSystemMessage(chat.id, deliveredLines.join('\n\n'))
+  }
+  if (chat && chatCreated && pendingNames.length > 0) {
+    await safePostSystemMessage(
+      chat.id,
+      `⏳ Эти позиции в обработке у менеджера, ожидайте сообщения здесь:\n${pendingNames.map((n) => `• ${n}`).join('\n')}`
+    )
   }
 
   // Если все позиции выданы — переводим заказ в delivered (ЛК покажет «Выполнен»).

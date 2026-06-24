@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { OrderStatus } from '@/types'
+import OrderChat from '@/components/OrderChat'
 
 interface Order {
   id: string
@@ -310,6 +311,11 @@ export default function AdminOrderDetailPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Чат с покупателем — для товаров без авто-выдачи это основной канал выдачи */}
+          <div id="chat">
+            <OrderChat apiBase={`/api/admin/orders/${orderId}/chat`} role="admin" />
           </div>
         </div>
 

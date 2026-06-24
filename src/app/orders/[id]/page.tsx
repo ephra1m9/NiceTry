@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
+import OrderChat from '@/components/OrderChat'
 import { formatProductTitle } from '@/lib/utils'
 
 interface Order {
@@ -154,6 +155,13 @@ export default function OrderPage() {
           </div>
         </Card>
 
+        {/* Чат с продавцом — появляется после оплаты */}
+        {(order.status === 'paid' || order.status === 'delivered') && (
+          <div id="chat" className="mb-5">
+            <OrderChat apiBase={`/api/orders/${orderId}/chat`} role="user" />
+          </div>
+        )}
+
         {/* Итого */}
         <Card className="mb-5" padding={false}>
           <div className="card-pad">
@@ -191,8 +199,8 @@ export default function OrderPage() {
 
         {/* Действия */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link href="/profile" className="btn btn-secondary flex-1">Вернуться в профиль</Link>
-          <Link href="/catalog" className="btn btn-primary flex-1">Продолжить покупки</Link>
+          <Link href="/profile" className="btn btn-secondary w-full sm:flex-1">Вернуться в профиль</Link>
+          <Link href="/catalog" className="btn btn-primary w-full sm:flex-1">Продолжить покупки</Link>
         </div>
       </div>
     </div>
