@@ -14,7 +14,7 @@
 // непоставленная позиция остаётся 'pending', заказ — 'paid' (в работе), вебхук отвечает 200.
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { deliverInstant, DeliveryPendingError } from '@/lib/delivery'
+import { deliverInstant, deliverEsim, DeliveryPendingError } from '@/lib/delivery'
 import { safeGetOrCreateChat, safePostSystemMessage } from '@/lib/chat'
 import type { Product } from '@/types'
 
@@ -85,6 +85,35 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
   let allDelivered = true
   for (const it of items ?? []) {
     if (it.delivery_status === 'delivered' && it.voucher_code) continue
+
+    // eSIM (Dessly): цена динамическая, у позиции нет product_id (не лежит в каталоге) —
+    // выдача роутится по form_data.type, а не по supplier товара (см. lib/dessly/esim/order/route.ts).
+    const formDataEsim = (it.form_data as Record<string, string> | null) ?? undefined
+    if (!it.product_id && formDataEsim?.type === 'esim') {
+      try {
+        const codes = await deliverEsim(formDataEsim.variant_id, formDataEsim.product_id, invoiceId)
+        if (codes.length > 0) {
+          await supabaseAdmin
+            .from('order_items')
+            .update({ voucher_code: codes.join('\n'), delivery_status: 'delivered' })
+            .eq('id', it.id)
+          deliveredLines.push(`📦 ${it.product_name}\n🔑 ${codes.join('\n')}`)
+          continue
+        }
+      } catch (e) {
+        if (e instanceof DeliveryPendingError) {
+          // Сохраняем transactionId на заказе — без этого cron-дозабор (Блок reconcile) не
+          // сможет найти, какую транзакцию Dessly опрашивать дальше.
+          await supabaseAdmin.from('orders').update({ supplier_trace_id: e.transactionId }).eq('id', order.id)
+          console.warn('[payments/fulfillment] eSIM выдача в обработке (pending):', it.id, e.transactionId)
+        } else {
+          console.error('[payments/fulfillment] eSIM выдача упала для', it.id, e)
+        }
+      }
+      allDelivered = false
+      pendingNames.push(it.product_name)
+      continue
+    }
 
     // Без product_id (фолбэк-каталог) — выдаёт менеджер.
     if (!it.product_id) {

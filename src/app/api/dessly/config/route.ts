@@ -6,6 +6,7 @@ import {
   resolveSendGameMode,
   sendGameEnabledFromCategories,
 } from '@/lib/dessly-gift'
+import { loadEsimSettings } from '@/lib/esim-settings'
 
 /**
  * GET /api/dessly/config
@@ -37,8 +38,13 @@ export async function GET() {
     enabled = true
   }
 
+  // Видимость страницы /esim — отдельный синглтон esim_settings (см. /api/admin/esim-settings),
+  // не общая таблица categories (variant/тариф не лежат в каталоге товаров).
+  const { is_enabled: esimEnabled } = await loadEsimSettings()
+
   return NextResponse.json({
     enabled,
+    esim_enabled: esimEnabled,
     commission_percent,
     mode: entry.mode,
     widget_url: entry.mode === 'embed' ? entry.url : null,

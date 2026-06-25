@@ -132,6 +132,44 @@
     { "id": "dessly_ea_fc_25", "name": "EA SPORTS FC 25", "price": 69.99, "currency": "USD", "platform": "Steam", "inStock": true },
     { "id": "dessly_hogwarts_legacy", "name": "Hogwarts Legacy", "price": 49.99, "currency": "USD", "platform": "Steam", "inStock": false }
   ],
+  "desslyEsim": {
+    "variants": [
+      { "id": "esim_tr_data", "name": "Турция — только интернет", "description": "Пакеты с интернетом без звонков и смс", "image": "", "country": "TR", "packageType": "data" },
+      { "id": "esim_ae_data", "name": "ОАЭ — только интернет", "description": "Пакеты с интернетом без звонков и смс", "image": "", "country": "AE", "packageType": "data" },
+      { "id": "esim_us_data", "name": "США — только интернет", "description": "Пакеты с интернетом без звонков и смс", "image": "", "country": "US", "packageType": "data" },
+      { "id": "esim_tr_voice", "name": "Турция — интернет, звонки, смс", "description": "Интернет + звонки и смс внутри страны", "image": "", "country": "TR", "packageType": "data_voice_sms" },
+      { "id": "esim_ae_voice", "name": "ОАЭ — интернет, звонки, смс", "description": "Интернет + звонки и смс внутри страны", "image": "", "country": "AE", "packageType": "data_voice_sms" },
+      { "id": "esim_global_voice", "name": "Глобальный пакет — интернет, звонки, смс", "description": "Безлимит звонков и смс внутри пакета + интернет, действует в 40+ странах", "image": "", "country": null, "continent": null, "esimCountries": ["TR", "AE", "US", "DE", "FR", "ES", "IT", "GB"], "packageType": "data_voice_sms" }
+    ],
+    "plansByVariant": {
+      "esim_tr_data": [
+        { "id": "plan_tr_data_1gb", "name": "1 ГБ / 7 дней", "description": "1 ГБ интернета на 7 дней", "price": 4.5, "stock": 999, "maxPerOrder": 5, "dataGb": 1, "validityDays": 7 },
+        { "id": "plan_tr_data_3gb", "name": "3 ГБ / 15 дней", "description": "3 ГБ интернета на 15 дней", "price": 8.9, "stock": 999, "maxPerOrder": 5, "dataGb": 3, "validityDays": 15 },
+        { "id": "plan_tr_data_5gb", "name": "5 ГБ / 30 дней", "description": "5 ГБ интернета на 30 дней", "price": 12.9, "stock": 999, "maxPerOrder": 5, "dataGb": 5, "validityDays": 30 },
+        { "id": "plan_tr_data_10gb", "name": "10 ГБ / 30 дней", "description": "10 ГБ интернета на 30 дней", "price": 19.9, "stock": 999, "maxPerOrder": 5, "dataGb": 10, "validityDays": 30 }
+      ],
+      "esim_ae_data": [
+        { "id": "plan_ae_data_1gb", "name": "1 ГБ / 7 дней", "description": "1 ГБ интернета на 7 дней", "price": 5.5, "stock": 999, "maxPerOrder": 5, "dataGb": 1, "validityDays": 7 },
+        { "id": "plan_ae_data_5gb", "name": "5 ГБ / 30 дней", "description": "5 ГБ интернета на 30 дней", "price": 14.9, "stock": 999, "maxPerOrder": 5, "dataGb": 5, "validityDays": 30 },
+        { "id": "plan_ae_data_10gb", "name": "10 ГБ / 30 дней", "description": "10 ГБ интернета на 30 дней", "price": 22.9, "stock": 999, "maxPerOrder": 5, "dataGb": 10, "validityDays": 30 }
+      ],
+      "esim_us_data": [
+        { "id": "plan_us_data_3gb", "name": "3 ГБ / 15 дней", "description": "3 ГБ интернета на 15 дней", "price": 9.9, "stock": 999, "maxPerOrder": 5, "dataGb": 3, "validityDays": 15 },
+        { "id": "plan_us_data_10gb", "name": "10 ГБ / 30 дней", "description": "10 ГБ интернета на 30 дней", "price": 24.9, "stock": 999, "maxPerOrder": 5, "dataGb": 10, "validityDays": 30 }
+      ],
+      "esim_tr_voice": [
+        { "id": "plan_tr_voice_3gb", "name": "3 ГБ + 100 мин + 50 смс / 15 дней", "description": "3 ГБ интернета, 100 минут, 50 смс на 15 дней", "price": 11.9, "stock": 999, "maxPerOrder": 3, "dataGb": 3, "voiceMinutes": 100, "smsCount": 50, "validityDays": 15 },
+        { "id": "plan_tr_voice_10gb", "name": "10 ГБ + 300 мин + 150 смс / 30 дней", "description": "10 ГБ интернета, 300 минут, 150 смс на 30 дней", "price": 26.9, "stock": 999, "maxPerOrder": 3, "dataGb": 10, "voiceMinutes": 300, "smsCount": 150, "validityDays": 30 }
+      ],
+      "esim_ae_voice": [
+        { "id": "plan_ae_voice_5gb", "name": "5 ГБ + 150 мин + 50 смс / 30 дней", "description": "5 ГБ интернета, 150 минут, 50 смс на 30 дней", "price": 18.9, "stock": 999, "maxPerOrder": 3, "dataGb": 5, "voiceMinutes": 150, "smsCount": 50, "validityDays": 30 }
+      ],
+      "esim_global_voice": [
+        { "id": "plan_global_voice_5gb", "name": "5 ГБ + 100 мин + 50 смс / 30 дней", "description": "5 ГБ интернета, 100 минут, 50 смс на 30 дней, 40+ стран", "price": 24.9, "stock": 999, "maxPerOrder": 3, "dataGb": 5, "voiceMinutes": 100, "smsCount": 50, "validityDays": 30 },
+        { "id": "plan_global_voice_10gb", "name": "10 ГБ + 200 мин + 100 смс / 30 дней", "description": "10 ГБ интернета, 200 минут, 100 смс на 30 дней, 40+ стран", "price": 34.9, "stock": 999, "maxPerOrder": 3, "dataGb": 10, "voiceMinutes": 200, "smsCount": 100, "validityDays": 30 }
+      ]
+    }
+  },
   "manualProducts": [
     {
       "name": "WoW: Буст персонажа до 70 ур. (ручная выдача)", "categorySlug": "blizzard", "type": "manual",

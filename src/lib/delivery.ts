@@ -17,7 +17,15 @@ import {
   AppRouteError,
   AppRouteStatusCode,
 } from '@/lib/approute'
-import { sendGift, resolvePackage, getTransactionStatus, isSteamInviteUrl, DesslyError } from '@/lib/dessly'
+import {
+  sendGift,
+  resolvePackage,
+  getTransactionStatus,
+  isSteamInviteUrl,
+  DesslyError,
+  createEsimOrder,
+  getEsimOrderStatus,
+} from '@/lib/dessly'
 import type { Product } from '@/types'
 
 /**
@@ -131,4 +139,46 @@ export async function deliverInstant(
     if (!error) out.push(key.key_value)
   }
   return out
+}
+
+/**
+ * Покупка eSIM через Dessly (см. lib/dessly.ts createEsimOrder/getEsimOrderStatus). Используется
+ * И из /api/dessly/esim/order (оплата с баланса), И из вебхука pay4game (оплата картой) — там
+ * order_items.product_id всегда null (eSIM не лежит в каталоге, цена динамическая), поэтому
+ * выдача роутится по form_data.type==='esim', а не по supplier товара (см. fulfillment.ts).
+ *
+ * Семантика поллинга/таймаута зеркалит deliverInstant (steam_gift) выше: backoff 1.5–3с,
+ * бюджет ~30с, pending по истечении → DeliveryPendingError (деньги у поставщика, не провал).
+ */
+export async function deliverEsim(variantId: string, productId: string, referenceId: string): Promise<string[]> {
+  let res = await createEsimOrder({ variantId, productId, reference: referenceId })
+  const transactionId = res.transactionId
+  let status = res.status
+  let tries = 0
+  let full = await getEsimOrderStatus(transactionId)
+  while (full.status === 'pending' && transactionId && tries < DESSLY_POLL_MAX_TRIES) {
+    await sleep(Math.min(1500 + tries * 500, 3000))
+    tries += 1
+    full = await getEsimOrderStatus(transactionId)
+  }
+  status = full.status
+
+  if (status === 'failed') {
+    throw new DesslyError(full.message || 'Покупка eSIM не удалась', 502, full.errorCode)
+  }
+  if (status === 'pending') {
+    if (!transactionId) {
+      throw new DesslyError(full.message || 'Поставщик не принял заказ', 502, full.errorCode)
+    }
+    throw new DeliveryPendingError(transactionId)
+  }
+
+  const lines: string[] = []
+  if (full.qrCodeText) lines.push(`QR-код активации: ${full.qrCodeText}`)
+  if (full.smdpAddress) lines.push(`SM-DP+ адрес: ${full.smdpAddress}`)
+  if (full.matchingId) lines.push(`Matching ID: ${full.matchingId}`)
+  if (full.iccid) lines.push(`ICCID: ${full.iccid}`)
+  if (full.universalLink) lines.push(`Ссылка для установки: ${full.universalLink}`)
+  if (full.androidUniversalLink) lines.push(`Ссылка для установки (Android): ${full.androidUniversalLink}`)
+  return lines.length ? lines : [`eSIM активирована: транзакция ${transactionId}`]
 }

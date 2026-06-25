@@ -28,6 +28,7 @@ const CATNAV = [
   { label: 'Пополнения', icon: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>', href: '/catalog?group=topup' },
   { label: 'Подписки', icon: '<path d="M4 7h16v12H4zM4 7l8 6 8-6"/>', href: '/catalog?group=subscriptions' },
   { label: 'Gift-карты', icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M12 5v14"/>', href: '/catalog?group=gift-cards' },
+  { label: 'eSIM', icon: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h3M9 11h6M9 15h6"/>', href: '/esim' },
   { label: 'Популярное', icon: '<path d="M12 3l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z"/>', href: '/catalog?group=popular' },
 ]
 
@@ -323,12 +324,6 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
-            <Link className="hot" href="/catalog">
-              <svg className="ic" viewBox="0 0 24 24">
-                <path d="M12 3c1 3-2 4-2 7a4 4 0 008 0c0-2-1-3-1-3 2 1 3 3 3 6a8 8 0 01-16 0c0-4 3-6 4-8 1 2 2 1 4-2z" />
-              </svg>
-              Скидки
-            </Link>
             {user?.is_admin && (
               <Link href="/admin" style={{ marginLeft: 'auto', color: 'var(--blue-700)' }}>
                 <svg className="ic" viewBox="0 0 24 24">
@@ -396,11 +391,6 @@ export default function Header() {
                   {item.label}
                 </button>
               ))}
-              <button onClick={() => go('/catalog')} style={{ color: 'var(--red)' }}>
-                <svg className="ic" viewBox="0 0 24 24"><path d="M12 3c1 3-2 4-2 7a4 4 0 008 0c0-2-1-3-1-3 2 1 3 3 3 6a8 8 0 01-16 0c0-4 3-6 4-8 1 2 2 1 4-2z" /></svg>
-                Скидки
-              </button>
-
               <div className="drawer-sep" />
 
               {authUser ? (

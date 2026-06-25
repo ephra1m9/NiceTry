@@ -11,6 +11,7 @@ import TelegramLinkCard from '@/components/TelegramLinkCard'
 import OrdersSection from '@/components/OrdersSection'
 import ProxyOrdersSection from '@/components/ProxyOrdersSection'
 import TelegramOrdersSection from '@/components/TelegramOrdersSection'
+import EsimOrdersSection from '@/components/EsimOrdersSection'
 
 function initials(email?: string): string {
   if (!email) return 'NT'
@@ -160,6 +161,9 @@ export default function ProfilePage() {
 
         {/* Заявки на Telegram Stars/Premium (раздел скрывается, если их нет) */}
         <TelegramOrdersSection />
+
+        {/* Купленные eSIM (раздел скрывается, если их нет) */}
+        <EsimOrdersSection />
       </div>
     </div>
   )

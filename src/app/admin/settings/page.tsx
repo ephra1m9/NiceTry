@@ -28,6 +28,12 @@ interface TelegramSettings {
   usd_to_rub_rate: number
 }
 
+interface EsimSettings {
+  markup_percent: number
+  usd_to_rub_rate: number
+  is_enabled: boolean
+}
+
 export default function AdminSettingsPage() {
   const [statuses, setStatuses] = useState<UserStatus[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,11 +59,17 @@ export default function AdminSettingsPage() {
   const [telegramSaving, setTelegramSaving] = useState(false)
   const [telegramMsg, setTelegramMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
+  // eSIM: наценка/курс/вкл-выкл витрины (синглтон esim_settings).
+  const [esim, setEsim] = useState<EsimSettings | null>(null)
+  const [esimSaving, setEsimSaving] = useState(false)
+  const [esimMsg, setEsimMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
   useEffect(() => {
     fetchStatuses()
     fetchPopular()
     fetchProxy()
     fetchTelegram()
+    fetchEsim()
   }, [])
 
   const fetchProxy = async () => {
@@ -140,6 +152,46 @@ export default function AdminSettingsPage() {
       setTelegramMsg({ type: 'err', text: 'Ошибка сети при сохранении' })
     } finally {
       setTelegramSaving(false)
+    }
+  }
+
+  const fetchEsim = async () => {
+    try {
+      const res = await fetch('/api/admin/esim-settings', { cache: 'no-store' })
+      const data = await res.json()
+      if (data.settings) {
+        setEsim(data.settings)
+      }
+    } catch (error) {
+      console.error('Failed to fetch esim settings:', error)
+    }
+  }
+
+  const saveEsim = async () => {
+    if (!esim) return
+    setEsimSaving(true)
+    setEsimMsg(null)
+    try {
+      const res = await fetch('/api/admin/esim-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markup_percent: esim.markup_percent,
+          usd_to_rub_rate: esim.usd_to_rub_rate,
+          is_enabled: esim.is_enabled,
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setEsimMsg({ type: 'err', text: body.error || 'Не удалось сохранить' })
+        return
+      }
+      setEsim(body.settings)
+      setEsimMsg({ type: 'ok', text: 'Настройки eSIM сохранены' })
+    } catch (error) {
+      setEsimMsg({ type: 'err', text: 'Ошибка сети при сохранении' })
+    } finally {
+      setEsimSaving(false)
     }
   }
 
@@ -561,6 +613,79 @@ export default function AdminSettingsPage() {
                   data-loading={telegramSaving ? 'true' : undefined}
                 >
                   Сохранить настройки Telegram
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* eSIM: наценка / курс / вкл-выкл витрины (синглтон esim_settings) */}
+      <div className="card mb-6">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-[17px] font-bold text-navy">eSIM</h2>
+          <p className="text-sm text-muted mt-1">
+            Наценка и курс USD→₽ для страницы «Купить eSIM» (/esim). Цена тарифа считается как
+            ceil(цена_Dessly_в_USD × курс × (1 + наценка%/100)).
+          </p>
+        </div>
+
+        <div className="p-6">
+          {esimMsg && (
+            <div className={`alert mb-4 ${esimMsg.type === 'ok' ? 'alert-success' : 'alert-error'}`}>
+              <span>{esimMsg.text}</span>
+            </div>
+          )}
+
+          {!esim ? (
+            <div className="loading-block">
+              <div className="spinner" />
+              <span>Загрузка настроек...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+              <label className="flex items-center gap-3 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={esim.is_enabled}
+                  onChange={(e) => setEsim({ ...esim, is_enabled: e.target.checked })}
+                />
+                <span className="font-semibold text-navy">Покупка eSIM включена</span>
+                <span className="text-sm text-muted">(выключение скрывает страницу /esim)</span>
+              </label>
+
+              <div>
+                <label className="label">Наценка (%)</label>
+                <input
+                  type="number"
+                  value={esim.markup_percent}
+                  onChange={(e) => setEsim({ ...esim, markup_percent: parseFloat(e.target.value) })}
+                  className="input"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="label">Курс USD к рублю</label>
+                <input
+                  type="number"
+                  value={esim.usd_to_rub_rate}
+                  onChange={(e) => setEsim({ ...esim, usd_to_rub_rate: parseFloat(e.target.value) })}
+                  className="input"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <button
+                  onClick={saveEsim}
+                  disabled={esimSaving}
+                  className="btn btn-primary"
+                  data-loading={esimSaving ? 'true' : undefined}
+                >
+                  Сохранить настройки eSIM
                 </button>
               </div>
             </div>

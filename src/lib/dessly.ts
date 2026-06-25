@@ -98,6 +98,230 @@ export interface DesslyGiftResponse {
 // чтобы фолбэк-экран отправки игры (клиентский компонент) не тянул серверный клиент в бандл.
 export { STEAM_INVITE_RE, isSteamInviteUrl } from './dessly-gift'
 
+// ---- eSIM (Esim, dessly-openapi.json) ----
+// Двухуровневая модель: variant (страна/регион + тип пакета) → plan (конкретный ГБ/тариф с ценой).
+// variant.attributes.geo_scope / esim_package_type — свободные строки у Dessly (без enum в спеке),
+// поэтому пакетный тип определяем нормализованной проверкой (esimPackageBucket), а не точным ===.
+
+/** Пакет eSIM (строка из каталога) → одна из двух вкладок витрины. */
+export interface DesslyEsimVariant {
+  /** Packed esim variant id — используется как variant_id в getEsimVariant/createEsimOrder. */
+  id: string
+  name: string
+  description: string
+  image: string
+  /** Географический охват пакета (страна/регион/глобальный) — сырая строка Dessly. */
+  geoScope: string
+  /** Тип пакета (data-only / data+voice+sms) — сырая строка Dessly, см. esimPackageBucket. */
+  packageType: string
+  country?: string
+  continent?: string
+  /** Список стран для регионального/глобального пакета. */
+  esimCountries?: string[]
+}
+
+/** Конкретный тариф (ГБ/минуты/смс) внутри variant — то, что покупается (product_id). */
+export interface DesslyEsimPlan {
+  id: string
+  name: string
+  description: string
+  /** Финальная цена для мерчанта (USD), уже после правил комиссии Dessly. */
+  price: number
+  stock: number
+  maxPerOrder: number
+  /** Сырые атрибуты (объём ГБ, срок действия, минуты, смс — состав зависит от geo_scope). */
+  attributes: Record<string, unknown>
+}
+
+export interface DesslyEsimVariantDetail {
+  variant: DesslyEsimVariant
+  plans: DesslyEsimPlan[]
+}
+
+export interface DesslyEsimOrderRequest {
+  variantId: string
+  productId: string
+  reference?: string
+}
+
+export interface DesslyEsimOrderResult {
+  transactionId: string
+  status: DesslyGiftStatus
+  message?: string
+  errorCode?: number
+  /** service_result — присутствует только при status='sent' (completed). */
+  iccid?: string
+  qrCodeText?: string
+  smdpAddress?: string
+  matchingId?: string
+  universalLink?: string
+  androidUniversalLink?: string
+  canRenew?: boolean
+}
+
+/**
+ * Бакет вкладки витрины по типу пакета. Dessly не документирует фиксированный enum для
+ * esim_package_type — поэтому ищем признаки голоса/смс в строке, а не сравниваем строго.
+ * Перед боевым запуском сверить с реальным ответом GET /catalog/esim/products (см. WORKLOG).
+ */
+export function esimPackageBucket(packageType: string): 'data' | 'data_voice_sms' {
+  const v = String(packageType || '').toLowerCase()
+  return v.includes('voice') || v.includes('sms') || v.includes('call') ? 'data_voice_sms' : 'data'
+}
+
+function mapEsimVariant(v: Record<string, unknown>): DesslyEsimVariant {
+  const attrs = (v.attributes as Record<string, unknown>) || {}
+  return {
+    id: String(v.id ?? ''),
+    name: String(v.name ?? ''),
+    description: String(v.description ?? ''),
+    image: String(v.image ?? ''),
+    geoScope: String(attrs.geo_scope ?? ''),
+    packageType: String(attrs.esim_package_type ?? ''),
+    country: attrs.country ? String(attrs.country) : undefined,
+    continent: attrs.continent ? String(attrs.continent) : undefined,
+    esimCountries: Array.isArray(attrs.esim_countries) ? (attrs.esim_countries as unknown[]).map(String) : undefined,
+  }
+}
+
+function mockEsimVariants(): DesslyEsimVariant[] {
+  const raw = ((catalog as unknown as { desslyEsim?: { variants?: Array<Record<string, unknown>> } }).desslyEsim
+    ?.variants ?? []) as Array<Record<string, unknown>>
+  return raw.map((v) => ({
+    id: String(v.id ?? ''),
+    name: String(v.name ?? ''),
+    description: String(v.description ?? ''),
+    image: String(v.image ?? ''),
+    geoScope: String(v.geoScope ?? (v.country ? 'country' : 'region')),
+    packageType: String(v.packageType ?? ''),
+    country: v.country ? String(v.country) : undefined,
+    continent: v.continent ? String(v.continent) : undefined,
+    esimCountries: Array.isArray(v.esimCountries) ? (v.esimCountries as unknown[]).map(String) : undefined,
+  }))
+}
+
+/** Список доступных пакетов eSIM. GET /api/v1/catalog/esim/products (пагинация через cursor). */
+export async function listEsimVariants(
+  cursor?: string
+): Promise<{ variants: DesslyEsimVariant[]; nextCursor?: string; prevCursor?: string }> {
+  if (isLiveMode()) {
+    const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+    const data = await liveRequest<Record<string, unknown>>(`/api/v1/catalog/esim/products${qs}`)
+    const variants = Array.isArray(data.variants) ? (data.variants as Array<Record<string, unknown>>) : []
+    return {
+      variants: variants.map(mapEsimVariant),
+      nextCursor: data.next_cursor ? String(data.next_cursor) : undefined,
+      prevCursor: data.prev_cursor ? String(data.prev_cursor) : undefined,
+    }
+  }
+  return { variants: mockEsimVariants() }
+}
+
+/**
+ * Тарифы внутри пакета. GET /api/v1/catalog/esim/products/{variant_id}
+ * → { success, data:{ ...variant, products:[...] } }. Возвращает null, если пакет не найден/недоступен.
+ */
+export async function getEsimVariant(variantId: string): Promise<DesslyEsimVariantDetail | null> {
+  if (isLiveMode()) {
+    const data = await liveRequest<Record<string, unknown>>(
+      `/api/v1/catalog/esim/products/${encodeURIComponent(variantId)}`
+    )
+    const d = (data.data as Record<string, unknown>) || (data.success !== false ? data : null)
+    if (!d || !d.id) return null
+    const variant = mapEsimVariant(d)
+    const products = Array.isArray(d.products) ? (d.products as Array<Record<string, unknown>>) : []
+    const plans: DesslyEsimPlan[] = products.map((p) => ({
+      id: String(p.id ?? ''),
+      name: String(p.name ?? ''),
+      description: String(p.description ?? ''),
+      price: toNum(p.price),
+      stock: toNum(p.stock),
+      maxPerOrder: toNum(p.max_per_order) || 1,
+      attributes: (p.attributes as Record<string, unknown>) || {},
+    }))
+    return { variant, plans }
+  }
+  const variant = mockEsimVariants().find((v) => v.id === variantId)
+  if (!variant) return null
+  const plansRaw = ((catalog as unknown as { desslyEsim?: { plansByVariant?: Record<string, Array<Record<string, unknown>>> } })
+    .desslyEsim?.plansByVariant?.[variantId] ?? []) as Array<Record<string, unknown>>
+  const plans: DesslyEsimPlan[] = plansRaw.map((p) => ({
+    id: String(p.id ?? ''),
+    name: String(p.name ?? ''),
+    description: String(p.description ?? ''),
+    price: toNum(p.price),
+    stock: toNum(p.stock ?? 999),
+    maxPerOrder: toNum(p.maxPerOrder ?? 1) || 1,
+    attributes: {
+      dataGb: p.dataGb,
+      voiceMinutes: p.voiceMinutes,
+      smsCount: p.smsCount,
+      validityDays: p.validityDays,
+    },
+  }))
+  return { variant, plans }
+}
+
+/**
+ * Покупка eSIM через единый orders-флоу. POST /api/v1/orders
+ * Тело: { payment_method:"balance", service_type:"esim", service_params:{ product_id, variant_id } }.
+ * order_id используется как transactionId для последующего опроса getEsimOrderStatus.
+ */
+export async function createEsimOrder(
+  req: DesslyEsimOrderRequest
+): Promise<{ transactionId: string; status: DesslyGiftStatus }> {
+  if (isLiveMode()) {
+    const data = await liveRequest<Record<string, unknown>>('/api/v1/orders', {
+      method: 'POST',
+      body: {
+        payment_method: 'balance',
+        service_type: 'esim',
+        service_params: { product_id: req.productId, variant_id: req.variantId },
+        ...(req.reference ? { reference: req.reference } : {}),
+      },
+    })
+    return { transactionId: String(data.order_id ?? ''), status: mapStatus(data.status) }
+  }
+  return { transactionId: `dessly-esim-${Date.now().toString(36)}`, status: 'sent' }
+}
+
+/**
+ * Статус заказа eSIM. GET /api/v1/orders/{order_id} → service_result несёт данные активации
+ * (iccid/qr_code_text/smdp_address/matching_id/universal_link) только при completed.
+ */
+export async function getEsimOrderStatus(transactionId: string): Promise<DesslyEsimOrderResult> {
+  if (isLiveMode()) {
+    const data = await liveRequest<Record<string, unknown>>(
+      `/api/v1/orders/${encodeURIComponent(transactionId)}`
+    )
+    const ecRaw = data.error_code
+    const codeNum = ecRaw != null && ecRaw !== '' ? Number(ecRaw) : NaN
+    const code = Number.isFinite(codeNum) ? codeNum : undefined
+    const sr = (data.service_result as Record<string, unknown>) || {}
+    return {
+      transactionId,
+      status: mapStatus(data.order_status),
+      message: code != null ? desslyErrorMessage(code) : (data.detail as string | undefined),
+      errorCode: code,
+      iccid: sr.iccid ? String(sr.iccid) : undefined,
+      qrCodeText: sr.qr_code_text ? String(sr.qr_code_text) : undefined,
+      smdpAddress: sr.smdp_address ? String(sr.smdp_address) : undefined,
+      matchingId: sr.matching_id ? String(sr.matching_id) : undefined,
+      universalLink: sr.universal_link ? String(sr.universal_link) : undefined,
+      androidUniversalLink: sr.android_universal_link ? String(sr.android_universal_link) : undefined,
+      canRenew: typeof sr.can_renew === 'boolean' ? sr.can_renew : undefined,
+    }
+  }
+  return {
+    transactionId,
+    status: 'sent',
+    iccid: '8901234567890123456',
+    qrCodeText: `LPA:1$mock.dessly.local$${transactionId}`,
+    smdpAddress: 'mock.dessly.local',
+    matchingId: transactionId,
+  }
+}
+
 // ============================================================
 // Конфиг / режим
 // ============================================================

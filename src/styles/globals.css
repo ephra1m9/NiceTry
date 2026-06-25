@@ -442,6 +442,18 @@
     box-shadow: var(--shadow-lg);
     transform: translateY(-3px);
   }
+  .esim-sim-card {
+    position: relative;
+    height: 96px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    text-align: left;
+    transition: transform 0.16s ease;
+  }
+  .esim-sim-card:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
   .pcard .cover {
     position: relative;
     aspect-ratio: 4 / 3;
