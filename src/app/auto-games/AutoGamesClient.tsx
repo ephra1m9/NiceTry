@@ -19,58 +19,20 @@ const GAME_GRADIENTS: Record<string, string> = {
   'zenless-zone-zero':  'linear-gradient(135deg,#0d0d1a 0%,#3b3b7a 100%)',
 }
 
-function minPrice(denominations: GameTopupDenomination[]): number | null {
-  if (denominations.length === 0) return null
-  return Math.min(...denominations.filter((d) => d.is_active).map((d) => d.price_rub))
-}
-
-function money(value: number): string {
-  return new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'RUB',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 function GameCard({ game }: { game: GameWithDenominations }) {
   const gradient = GAME_GRADIENTS[game.slug] ?? 'linear-gradient(135deg,#1a1a2e 0%,#4a4a8a 100%)'
   const cover = game.image_url
     ? `url("${game.image_url}") center / cover no-repeat, ${gradient}`
     : gradient
-  const activeDenoms = game.denominations.filter((d) => d.is_active)
-  const from = minPrice(game.denominations)
 
   return (
-    <Link href={`/auto-games/${game.slug}`} className="pcard" style={{ textDecoration: 'none' }}>
+    <Link href={`/auto-games/${game.slug}`} className="pcard pcard-game" style={{ textDecoration: 'none' }}>
       <div className="cover" style={{ background: cover }}>
         <div className="topbadges">
           <span className="badge badge-instant">Автопополнение</span>
           <span />
         </div>
-      </div>
-
-      <div className="body">
-        <div className="nm">{game.name}</div>
-
-        <div className="meta">
-          {activeDenoms.length > 0
-            ? <span>{activeDenoms.length} {activeDenoms.length === 1 ? 'пакет' : activeDenoms.length < 5 ? 'пакета' : 'пакетов'}</span>
-            : <span style={{ color: 'var(--muted)' }}>Пакеты не загружены</span>
-          }
-        </div>
-
-        <div className="foot">
-          <div className="price">
-            {from !== null ? (
-              <span className="now">
-                <span style={{ fontSize: 12, color: 'var(--muted-2)', fontWeight: 400 }}>от </span>
-                {money(from)}
-              </span>
-            ) : (
-              <span className="now" style={{ fontSize: 14, color: 'var(--muted)' }}>Скоро</span>
-            )}
-          </div>
-        </div>
+        <div className="game-nm">{game.name}</div>
       </div>
     </Link>
   )

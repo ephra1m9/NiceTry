@@ -30,7 +30,7 @@ const CATNAV = [
   { label: 'Gift-карты', icon: 'credit-card-2-front', href: '/catalog?group=gift-cards' },
   { label: 'eSIM', icon: 'sim', href: '/esim' },
   { label: 'Донат', icon: 'controller', href: '/auto-games' },
-  { label: 'Популярное', icon: 'star-fill', href: '/catalog?group=popular' },
+  { label: 'Наш VPN', icon: 'shield-lock', href: 'https://nicetry.surf', external: true, color: '#c0392b' },
 ]
 
 function initials(email?: string): string {
@@ -292,12 +292,19 @@ export default function Header() {
               <BI name="list" />
               Все категории
             </Link>
-            {CATNAV.map((item) => (
-              <Link key={item.label} href={item.href}>
-                <BI name={item.icon} size="sm" />
-                {item.label}
-              </Link>
-            ))}
+            {CATNAV.map((item) =>
+              item.external ? (
+                <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" style={{ color: item.color }}>
+                  <BI name={item.icon} size="sm" />
+                  {item.label}
+                </a>
+              ) : (
+                <Link key={item.label} href={item.href}>
+                  <BI name={item.icon} size="sm" />
+                  {item.label}
+                </Link>
+              )
+            )}
             {user?.is_admin && (
               <Link href="/admin" style={{ marginLeft: 'auto', color: 'var(--blue-700)' }}>
                 <BI name="shield" />
@@ -353,12 +360,19 @@ export default function Header() {
                 <BI name="list" />
                 Все категории
               </button>
-              {CATNAV.map((item) => (
-                <button key={item.label} onClick={() => go(item.href)}>
-                  <BI name={item.icon} />
-                  {item.label}
-                </button>
-              ))}
+              {CATNAV.map((item) =>
+                item.external ? (
+                  <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer" style={{ color: item.color }} onClick={() => setMenuOpen(false)}>
+                    <BI name={item.icon} />
+                    {item.label}
+                  </a>
+                ) : (
+                  <button key={item.label} onClick={() => go(item.href)}>
+                    <BI name={item.icon} />
+                    {item.label}
+                  </button>
+                )
+              )}
               <div className="drawer-sep" />
 
               {authUser ? (

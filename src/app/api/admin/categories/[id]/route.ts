@@ -27,7 +27,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
   }
 }
 
-const ALLOWED_FIELDS = ['name', 'slug', 'icon', 'markup_percent', 'usd_to_rub_rate', 'is_active', 'sort_order'] as const
+const ALLOWED_FIELDS = ['name', 'slug', 'icon', 'markup_percent', 'usd_to_rub_rate', 'is_active', 'sort_order', 'supplier'] as const
 const NUMERIC_FIELDS = new Set(['markup_percent', 'usd_to_rub_rate', 'sort_order'])
 const PRICE_FIELDS = new Set(['markup_percent', 'usd_to_rub_rate'])
 
@@ -55,6 +55,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
       if (key === 'is_active') value = Boolean(value)
       update[key] = value
+    }
+
+    if ('regions' in body) {
+      update.regions = Array.isArray(body.regions) ? body.regions : []
     }
 
     if (Object.keys(update).length === 0) {

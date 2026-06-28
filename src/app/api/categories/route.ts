@@ -16,10 +16,18 @@ export async function GET() {
       .eq('is_active', true)
       // Категория игр Dessly убрана из каталога — отправка игр только через /send-game.
       .neq('slug', 'dessly-games')
+      // auto-games идёт отдельным полем, чтобы клиент мог отличить «не в БД» от «деактивирована».
+      .neq('slug', 'auto-games')
       .order('sort_order', { ascending: true })
 
     if (!error && categories && categories.length > 0) {
-      return NextResponse.json({ categories })
+      // Отдельно загружаем auto-games (независимо от is_active) для главной страницы.
+      const { data: autoGamesRows } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', 'auto-games')
+        .single()
+      return NextResponse.json({ categories, autoGamesCategory: autoGamesRows ?? null })
     }
     return NextResponse.json({ categories: catalogFallbackCategories(), source: 'catalog-fallback' })
   } catch (error) {

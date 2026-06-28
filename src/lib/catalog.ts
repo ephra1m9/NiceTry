@@ -76,6 +76,7 @@ function catFromRaw(raw: RawCategory): CatalogCategory {
     supplier: raw.supplier as 'approute' | 'dessly',
     is_active: true,
     sort_order: raw.sort_order,
+    regions: [],
   }
 }
 

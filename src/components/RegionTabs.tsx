@@ -11,8 +11,21 @@ interface RegionTabsProps {
   onChange: (value: string) => void
 }
 
+// Эмодзи для кодов без стандартного флага ISO 3166-1
+const EMOJI_FLAGS: Record<string, string> = {
+  GLOBAL: '🌐',
+  CIS: '🌍',
+}
+
 // UK → GB для ISO 3166-1 (flagcdn.com использует стандартные коды)
 function FlagImg({ code }: { code: string }) {
+  if (EMOJI_FLAGS[code]) {
+    return (
+      <span aria-hidden="true" className="text-base leading-none flex-none">
+        {EMOJI_FLAGS[code]}
+      </span>
+    )
+  }
   const iso = (code === 'UK' ? 'GB' : code).toLowerCase()
   return (
     <img

@@ -57,6 +57,16 @@ try {
   regionNames = null
 }
 
+const CONTINENT_NAMES: Record<string, string> = {
+  'Africa': 'Африка',
+  'Asia': 'Азия',
+  'Caribbean': 'Карибы',
+  'Middle East': 'Средний Восток',
+  'North America': 'Северная Америка',
+  'Oceania': 'Океания',
+  'South America': 'Южная Америка',
+}
+
 function countryLabel(v: VariantEntry): string {
   if (v.country) {
     try {
@@ -65,7 +75,8 @@ function countryLabel(v: VariantEntry): string {
       return v.country
     }
   }
-  if (v.continent) return v.continent
+  if (v.continent) return CONTINENT_NAMES[v.continent] ?? v.continent
+  if (!v.country && !v.continent && /global/i.test(v.name)) return 'Все страны + РФ'
   return v.name
 }
 

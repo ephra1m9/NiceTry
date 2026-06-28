@@ -43,11 +43,23 @@ export default function HomePage() {
   const [banners, setBanners] = useState<Array<{ id: string; title: string; image_url: string; link_url?: string }>>([])
   const [sendGameEnabled, setSendGameEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
+  // Данные категории auto-games из БД (иконка, название). null пока не загружены.
+  const [autoGamesCat, setAutoGamesCat] = useState<Category | null>(null)
+  // false только когда БД явно вернула is_active=false для auto-games.
+  const [autoGamesVisible, setAutoGamesVisible] = useState(true)
 
   useEffect(() => {
     fetch('/api/categories')
       .then((res) => res.json())
-      .then((data) => setCategories(data.categories || []))
+      .then((data) => {
+        setCategories(data.categories || [])
+        if ('autoGamesCategory' in data) {
+          const ag = data.autoGamesCategory
+          setAutoGamesCat(ag ?? null)
+          // Скрываем плитку только если запись есть и явно деактивирована.
+          if (ag && ag.is_active === false) setAutoGamesVisible(false)
+        }
+      })
       .catch((err) => console.error('Failed to load categories:', err))
   }, [])
 
@@ -215,14 +227,20 @@ export default function HomePage() {
               </div>
             )
           })}
-          {/* Фиксированная плитка раздела «Автоматический донат в игры» */}
-          <div className="cat-tile" onClick={() => router.push('/auto-games')}>
-            <div className="ico">
-              <BI name="controller" />
+          {/* Плитка «Донат в игры»: иконка/название из БД, видимость управляется через admin. */}
+          {autoGamesVisible && (
+            <div className="cat-tile" onClick={() => router.push('/auto-games')}>
+              <div className="ico">
+                {autoGamesCat?.icon && (autoGamesCat.icon.startsWith('/') || autoGamesCat.icon.startsWith('http')) ? (
+                  <img src={autoGamesCat.icon} alt="" className="w-6 h-6 object-contain" />
+                ) : (
+                  <BI name="controller" />
+                )}
+              </div>
+              <div className="nm">{formatProductTitle(autoGamesCat?.name ?? 'Донат в игры')}</div>
+              <div className="ct">Genshin, PUBG, Free Fire…</div>
             </div>
-            <div className="nm">Донат в игры</div>
-            <div className="ct">Genshin, PUBG, Free Fire…</div>
-          </div>
+          )}
         </div>
       )}
 

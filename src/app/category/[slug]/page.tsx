@@ -11,59 +11,9 @@ import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
 import { formatProductTitle } from '@/lib/utils'
 import { BI } from '@/components/ui/BI'
+import REGIONS_LIST from '@/data/regions.json'
 
 const PAGE_SIZE = 50
-
-/**
- * Конфиг категориально-специфичных регионов.
- * Ключ — slug категории, значение — список опций для фильтра «Регион».
- * Значение `value` передаётся как подстрока для ilike-поиска по имени товара,
- * поэтому оно должно совпадать с тем, что реально содержится в названии товара
- * (например, «Turkey», «TR», «Poland», «PL», «India»).
- */
-const CATEGORY_REGIONS: Record<string, Array<{ value: string; label: string }>> = {
-  psn: [
-    { value: 'TR', label: 'Турция' },
-    { value: 'PL', label: 'Польша' },
-    { value: 'IN', label: 'Индия' },
-    { value: 'DE', label: 'Германия' },
-    { value: 'FR', label: 'Франция' },
-    { value: 'UK', label: 'Великобритания' },
-    { value: 'US', label: 'США' },
-  ],
-  steam: [
-    { value: 'US', label: 'США' },
-    { value: 'AE', label: 'ОАЭ' },
-    { value: 'TR', label: 'Турция' },
-    { value: 'VN', label: 'Вьетнам' },
-    { value: 'EU', label: 'Европа' },
-    { value: 'IN', label: 'Индия' },
-    { value: 'HK', label: 'Гонконг' },
-    { value: 'ID', label: 'Индонезия' },
-  ],
-  roblox: [
-    { value: 'RU', label: 'Россия' },
-    { value: 'AT', label: 'Австрия' },
-    { value: 'US', label: 'США' },
-    { value: 'BR', label: 'Бразилия' },
-    { value: 'UK', label: 'Великобритания' },
-  ],
-  appstore: [
-    { value: 'RU', label: 'Россия' },
-    { value: 'US', label: 'США' },
-    { value: 'TR', label: 'Турция' },
-    { value: 'KZ', label: 'Казахстан' },
-    { value: 'IN', label: 'Индия' },
-    { value: 'PL', label: 'Польша' },
-    { value: 'CA', label: 'Канада' },
-  ],
-  google: [
-    { value: 'US', label: 'США' },
-    { value: 'TR', label: 'Турция' },
-    { value: 'IN', label: 'Индия' },
-    { value: 'PL', label: 'Польша' },
-  ],
-}
 
 const EMPTY_FILTERS: FilterState = {
   search: '',
@@ -87,7 +37,10 @@ export default function CategoryPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
 
-  const categoryRegions = CATEGORY_REGIONS[slug] ?? []
+  const categoryRegions = (category?.regions ?? []).map((code) => {
+    const found = REGIONS_LIST.find((r) => r.code === code)
+    return { value: code, label: found?.name ?? code }
+  })
   const hasRegions = categoryRegions.length > 0
   const abortRef = useRef<AbortController | null>(null)
 

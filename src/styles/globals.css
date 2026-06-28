@@ -612,6 +612,31 @@
     pointer-events: none;
   }
 
+  /* Игровая карточка — портрет 3:4, название внутри изображения */
+  .pcard-game {
+    background: transparent;
+  }
+  .pcard-game .cover {
+    aspect-ratio: 3 / 4;
+    flex: 1;
+  }
+  .pcard-game .cover::after {
+    background: linear-gradient(0deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.18) 40%, transparent 65%);
+  }
+  .pcard-game .game-nm {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 52px 12px 14px;
+    z-index: 2;
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.25;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  }
+
   /* Скелет-загрузка карточек */
   .scard {
     background: #fff;

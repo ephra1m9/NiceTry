@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import REGIONS_LIST from '@/data/regions.json'
+import { ImageUploadField } from '@/components/admin/ImageUploadField'
 
 export default function EditCategoryPage() {
   const router = useRouter()
@@ -17,6 +19,7 @@ export default function EditCategoryPage() {
     supplier: '',
     is_active: true,
     sort_order: '0',
+    regions: [] as string[],
   })
 
   useEffect(() => {
@@ -38,6 +41,7 @@ export default function EditCategoryPage() {
           supplier: cat.supplier ?? '',
           is_active: cat.is_active ?? true,
           sort_order: String(cat.sort_order ?? 0),
+          regions: Array.isArray(cat.regions) ? cat.regions : [],
         })
       }
     } catch (error) {
@@ -57,6 +61,15 @@ export default function EditCategoryPage() {
     }))
   }
 
+  const handleRegionToggle = (code: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      regions: prev.regions.includes(code)
+        ? prev.regions.filter((r) => r !== code)
+        : [...prev.regions, code],
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -71,6 +84,7 @@ export default function EditCategoryPage() {
         supplier: formData.supplier || undefined,
         is_active: formData.is_active,
         sort_order: parseInt(formData.sort_order),
+        regions: formData.regions,
       }
 
       const res = await fetch(`/api/admin/categories/${id}`, {
@@ -134,14 +148,10 @@ export default function EditCategoryPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-navy mb-2">URL иконки</label>
-              <input
-                type="text"
-                name="icon"
+              <label className="block text-sm font-semibold text-navy mb-2">Иконка</label>
+              <ImageUploadField
                 value={formData.icon}
-                onChange={handleChange}
-                className="input"
-                placeholder="https://..."
+                onChange={(url) => setFormData((prev) => ({ ...prev, icon: url }))}
               />
             </div>
 
@@ -185,6 +195,28 @@ export default function EditCategoryPage() {
                 <span className="text-sm font-semibold text-navy">Категория активна</span>
               </label>
             </div>
+          </div>
+        </div>
+
+        {/* Регионы */}
+        <div>
+          <h3 className="text-[17px] font-bold text-navy mb-1">Регионы</h3>
+          <p className="text-sm text-muted mb-4">Выберите регионы, доступные в этой категории. Используются для фильтрации товаров на странице категории.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {REGIONS_LIST.map((region) => (
+              <label key={region.code} className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={formData.regions.includes(region.code)}
+                  onChange={() => handleRegionToggle(region.code)}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm text-navy">
+                  <span className="font-mono text-muted text-xs mr-1">{region.code}</span>
+                  {region.name}
+                </span>
+              </label>
+            ))}
           </div>
         </div>
 

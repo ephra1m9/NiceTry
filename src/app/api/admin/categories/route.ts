@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       supplier: body.supplier || null,
       is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
       sort_order: body.sort_order !== undefined ? Number(body.sort_order) : 0,
+      regions: Array.isArray(body.regions) ? body.regions : [],
     }
 
     const { data: category, error } = await supabase

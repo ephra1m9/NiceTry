@@ -95,6 +95,7 @@ export interface Category {
   supplier: 'approute' | 'dessly'
   is_active: boolean
   sort_order: number
+  regions: string[]
 }
 
 // ============================================================
