@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/useUser'
 import { useAuth } from '@/hooks/useAuth'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
+import { BI } from '@/components/ui/BI'
 import Alert from '@/components/ui/Alert'
 import Input from '@/components/ui/Input'
 import { NICKNAME_MIN, NICKNAME_MAX } from '@/lib/auth/nickname'
@@ -246,7 +247,7 @@ export default function CheckoutPage() {
       <div className="container py-10">
         <div className="empty-state card max-w-lg mx-auto">
           <div className="ico">
-            <svg className="ic" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" /></svg>
+            <BI name="cart3" />
           </div>
           <h3>Корзина пуста</h3>
           <p>Добавьте товары в корзину перед оформлением заказа.</p>
@@ -262,7 +263,7 @@ export default function CheckoutPage() {
       <div className="container py-12 flex justify-center">
         <div className="card card-pad max-w-md w-full text-center">
           <div className="alert alert-success mb-4 text-left">
-            <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+            <BI name="check-lg" size="sm" />
             <div>
               <div className="font-semibold">Оплата прошла</div>
               <p className="text-[13px] opacity-90 mt-0.5">Заказ оформлен и привязан к вашему аккаунту.</p>
@@ -290,7 +291,7 @@ export default function CheckoutPage() {
       <div className="container py-12 flex justify-center">
         <div className="card card-pad max-w-md w-full">
           <div className="alert alert-success mb-5">
-            <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+            <BI name="check-lg" size="sm" />
             <div>
               <div className="font-semibold">Оплата прошла</div>
               <p className="text-[13px] opacity-90 mt-0.5">
@@ -320,7 +321,7 @@ export default function CheckoutPage() {
               />
               <div className="mt-1.5 text-[13px] min-h-[18px]">
                 {nickState === 'checking' && <span className="text-muted-2">Проверяем…</span>}
-                {nickState === 'free' && <span className="text-green-600">✓ Ник свободен</span>}
+                {nickState === 'free' && <span className="text-green-600"><i className="bi bi-check-lg" aria-hidden="true" /> Ник свободен</span>}
                 {nickState === 'taken' && <span className="text-red-600">Этот ник уже занят</span>}
                 {nickState === 'invalid' && <span className="text-red-600">{nickError}</span>}
                 {nickState === 'idle' && (

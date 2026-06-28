@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Card from '@/components/ui/Card'
+import { BI } from '@/components/ui/BI'
 
 /**
  * Раздел «Мои Telegram-заявки» в профиле (сайт + Mini App).
@@ -93,7 +94,7 @@ export default function TelegramOrdersSection() {
         </div>
       ) : error ? (
         <div className="alert alert-error">
-          <svg className="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
+          <BI name="info-circle" size="sm" />
           <span>{error}</span>
         </div>
       ) : (

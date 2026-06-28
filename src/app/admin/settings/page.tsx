@@ -1,6 +1,77 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+
+// Поле загрузки изображения: кнопка выбора файла → upload → превью + URL.
+function ImageUploadField({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (file: File) => {
+    setUploading(true)
+    setError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/admin/upload-card-image', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'Ошибка загрузки'); return }
+      onChange(data.url)
+    } catch {
+      setError('Ошибка сети')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {value && (
+          <img
+            src={value}
+            alt=""
+            style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)', flexShrink: 0 }}
+          />
+        )}
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="btn btn-outline btn-sm"
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {uploading ? 'Загрузка…' : value ? '↻ Заменить' : '↑ Загрузить'}
+        </button>
+        {value && (
+          <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            {value}
+          </span>
+        )}
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="btn btn-ghost btn-sm"
+            style={{ color: 'var(--muted)', padding: '0 4px', flexShrink: 0 }}
+            title="Удалить изображение"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }}
+      />
+    </div>
+  )
+}
 
 interface UserStatus {
   id: string
@@ -64,12 +135,39 @@ export default function AdminSettingsPage() {
   const [esimSaving, setEsimSaving] = useState(false)
   const [esimMsg, setEsimMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
+  // Поиск по каталогу AppRoute (для нахождения approute_service_id).
+  const [dtuSearch, setDtuSearch] = useState('')
+  const [dtuResults, setDtuResults] = useState<Array<{ id: string; name: string; type: string|null; hasDtuFields: boolean; section: string|null; denominationsCount: number; fields: string[] }>>([])
+  const [dtuLoading, setDtuLoading] = useState(false)
+  const [dtuError, setDtuError] = useState('')
+
+  // Игровые пополнения: per-game наценка/курс/изображение (таблица game_topup_games).
+  const [gameTopupGames, setGameTopupGames] = useState<Array<{
+    id: string; slug: string; name: string; image_url: string | null
+    approute_service_id: string | null; approute_service_ids: Record<string,string>|null
+    markup_percent: number; usd_to_rub_rate: number; is_active: boolean; sort_order: number
+  }>>([])
+  const [gameTopupLoading, setGameTopupLoading] = useState(true)
+  const [gameTopupSyncing, setGameTopupSyncing] = useState(false)
+  const [gameTopupMsg, setGameTopupMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [editingGameId, setEditingGameId] = useState<string | null>(null)
+  const [editGameData, setEditGameData] = useState<Record<string, string | number | boolean | null>>({})
+  const [gameSaving, setGameSaving] = useState(false)
+
+  // Форма создания новой игры.
+  const EMPTY_NEW_GAME = { name: '', slug: '', markup_percent: 20, usd_to_rub_rate: 85, image_url: '', approute_service_id: '', approute_service_ids: '', account_fields: '[]', is_active: true }
+  const [showNewGame, setShowNewGame] = useState(false)
+  const [newGame, setNewGame] = useState({ ...EMPTY_NEW_GAME })
+  const [newGameSaving, setNewGameSaving] = useState(false)
+  const [newGameErr, setNewGameErr] = useState('')
+
   useEffect(() => {
     fetchStatuses()
     fetchPopular()
     fetchProxy()
     fetchTelegram()
     fetchEsim()
+    fetchGameTopupGames()
   }, [])
 
   const fetchProxy = async () => {
@@ -193,6 +291,116 @@ export default function AdminSettingsPage() {
     } finally {
       setEsimSaving(false)
     }
+  }
+
+  const fetchGameTopupGames = async () => {
+    try {
+      setGameTopupLoading(true)
+      const res = await fetch('/api/admin/game-topup-settings', { cache: 'no-store' })
+      const data = await res.json()
+      setGameTopupGames(data.games || [])
+    } catch (error) {
+      console.error('Failed to fetch game topup games:', error)
+    } finally {
+      setGameTopupLoading(false)
+    }
+  }
+
+  const saveGame = async (id: string) => {
+    setGameSaving(true)
+    setGameTopupMsg(null)
+    try {
+      const res = await fetch('/api/admin/game-topup-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...editGameData }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setGameTopupMsg({ type: 'err', text: body.error || 'Не удалось сохранить' })
+        return
+      }
+      setEditingGameId(null)
+      setEditGameData({})
+      await fetchGameTopupGames()
+      setGameTopupMsg({ type: 'ok', text: 'Настройки игры сохранены' })
+    } catch {
+      setGameTopupMsg({ type: 'err', text: 'Ошибка сети при сохранении' })
+    } finally {
+      setGameSaving(false)
+    }
+  }
+
+  const createGame = async () => {
+    if (!newGame.name.trim()) { setNewGameErr('Введите название игры'); return }
+    if (!newGame.slug.trim()) { setNewGameErr('Введите slug'); return }
+    setNewGameSaving(true)
+    setNewGameErr('')
+    try {
+      let approute_service_ids = null
+      if (newGame.approute_service_ids.trim()) {
+        try { approute_service_ids = JSON.parse(newGame.approute_service_ids) } catch {
+          setNewGameErr('Поле «Service IDs (JSON)» — невалидный JSON'); setNewGameSaving(false); return
+        }
+      }
+      const res = await fetch('/api/admin/game-topup-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGame.name.trim(),
+          slug: newGame.slug.trim(),
+          markup_percent: newGame.markup_percent,
+          usd_to_rub_rate: newGame.usd_to_rub_rate,
+          image_url: newGame.image_url.trim() || null,
+          approute_service_id: newGame.approute_service_id.trim() || null,
+          approute_service_ids,
+          account_fields: newGame.account_fields,
+          is_active: newGame.is_active,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setNewGameErr(data.error || 'Ошибка сервера'); return }
+      setNewGame({ ...EMPTY_NEW_GAME })
+      setShowNewGame(false)
+      await fetchGameTopupGames()
+      setGameTopupMsg({ type: 'ok', text: `Игра «${data.game?.name}» добавлена` })
+    } catch {
+      setNewGameErr('Ошибка сети')
+    } finally {
+      setNewGameSaving(false)
+    }
+  }
+
+  const syncGameTopups = async () => {
+    setGameTopupSyncing(true)
+    setGameTopupMsg(null)
+    try {
+      const res = await fetch('/api/admin/sync-game-topups', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setGameTopupMsg({ type: 'err', text: body.error || 'Ошибка синхронизации' })
+        return
+      }
+      setGameTopupMsg({ type: 'ok', text: `Синхронизировано: ${body.total_synced} пакетов` })
+      await fetchGameTopupGames()
+    } catch {
+      setGameTopupMsg({ type: 'err', text: 'Ошибка сети при синхронизации' })
+    } finally {
+      setGameTopupSyncing(false)
+    }
+  }
+
+  const searchDtuCatalog = async () => {
+    setDtuLoading(true)
+    setDtuError('')
+    try {
+      const qs = dtuSearch.trim() ? `?search=${encodeURIComponent(dtuSearch.trim())}` : ''
+      const res = await fetch(`/api/admin/approute-dtu-catalog${qs}`, { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok) { setDtuError(data.error || 'Ошибка'); return }
+      setDtuResults(data.services || [])
+    } catch { setDtuError('Ошибка сети') }
+    finally { setDtuLoading(false) }
   }
 
   const fetchStatuses = async () => {
@@ -688,6 +896,394 @@ export default function AdminSettingsPage() {
                   Сохранить настройки eSIM
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Автоматический донат в игры: per-game наценка / курс / AppRoute service ID / изображение */}
+      <div className="card mb-6">
+        <div className="p-6 border-b border-border" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h2 className="text-[17px] font-bold text-navy">Автоматический донат в игры</h2>
+            <p className="text-sm text-muted mt-1">
+              Наценка / курс / AppRoute Service ID для каждой игры (/auto-games). Пакеты синкаются из AppRoute.
+            </p>
+          </div>
+          <div className="flex gap-2" style={{ marginLeft: 16 }}>
+            <button
+              onClick={() => { setShowNewGame((v) => !v); setNewGameErr('') }}
+              className="btn btn-primary btn-sm"
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {showNewGame ? '✕ Отмена' : '+ Добавить игру'}
+            </button>
+            <button
+              onClick={syncGameTopups}
+              disabled={gameTopupSyncing}
+              className="btn btn-outline btn-sm"
+              data-loading={gameTopupSyncing ? 'true' : undefined}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {gameTopupSyncing ? '⟳ Синхронизация…' : '↻ Синхронизировать пакеты'}
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {gameTopupMsg && (
+            <div className={`alert mb-4 ${gameTopupMsg.type === 'ok' ? 'alert-success' : 'alert-error'}`}>
+              <span>{gameTopupMsg.text}</span>
+            </div>
+          )}
+
+          {/* Форма создания новой игры */}
+          {showNewGame && (
+            <div className="mb-5 p-4" style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--gray-bg)' }}>
+              <div className="font-semibold text-navy mb-3" style={{ fontSize: 14 }}>Новая игра</div>
+              <div className="flex flex-wrap gap-3 mb-3">
+                <div style={{ flex: '1 1 200px' }}>
+                  <label className="label">Название *</label>
+                  <input
+                    className="input"
+                    placeholder="Genshin Impact"
+                    value={newGame.name}
+                    onChange={(e) => {
+                      const name = e.target.value
+                      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                      setNewGame((g) => ({ ...g, name, slug }))
+                    }}
+                  />
+                </div>
+                <div style={{ flex: '1 1 160px' }}>
+                  <label className="label">Slug * (URL)</label>
+                  <input
+                    className="input"
+                    placeholder="genshin-impact"
+                    value={newGame.slug}
+                    onChange={(e) => setNewGame((g) => ({ ...g, slug: e.target.value }))}
+                  />
+                </div>
+                <div style={{ flex: '0 0 90px' }}>
+                  <label className="label">Наценка %</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={newGame.markup_percent}
+                    onChange={(e) => setNewGame((g) => ({ ...g, markup_percent: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div style={{ flex: '0 0 90px' }}>
+                  <label className="label">Курс USD→RUB</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={newGame.usd_to_rub_rate}
+                    onChange={(e) => setNewGame((g) => ({ ...g, usd_to_rub_rate: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3 mb-3">
+                <div style={{ flex: '1 1 200px' }}>
+                  <label className="label">Service ID (одиночный)</label>
+                  <input
+                    className="input"
+                    placeholder="abc123"
+                    value={newGame.approute_service_id}
+                    onChange={(e) => setNewGame((g) => ({ ...g, approute_service_id: e.target.value }))}
+                  />
+                </div>
+                <div style={{ flex: '1 1 200px' }}>
+                  <label className="label">Service IDs (мульти-регион, JSON)</label>
+                  <input
+                    className="input"
+                    placeholder='{"cis":"id1","global":"id2"}'
+                    value={newGame.approute_service_ids}
+                    onChange={(e) => setNewGame((g) => ({ ...g, approute_service_ids: e.target.value }))}
+                  />
+                </div>
+                <div style={{ flex: '1 1 220px' }}>
+                  <label className="label">Изображение</label>
+                  <ImageUploadField
+                    value={newGame.image_url}
+                    onChange={(url) => setNewGame((g) => ({ ...g, image_url: url }))}
+                  />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="label">
+                  Поля аккаунта (JSON)
+                  <span className="text-muted" style={{ fontWeight: 400, marginLeft: 6 }}>
+                    — массив объектов: {'{'}name, label, type: "text"|"select", required, options?{'}'}
+                  </span>
+                </label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  style={{ fontFamily: 'monospace', fontSize: 12, resize: 'vertical' }}
+                  placeholder='[{"name":"uid","label":"UID","type":"text","required":true}]'
+                  value={newGame.account_fields}
+                  onChange={(e) => setNewGame((g) => ({ ...g, account_fields: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2" style={{ fontSize: 13, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={newGame.is_active}
+                    onChange={(e) => setNewGame((g) => ({ ...g, is_active: e.target.checked }))}
+                  />
+                  Активна сразу
+                </label>
+                {newGameErr && <span style={{ fontSize: 12, color: '#ef4444' }}>{newGameErr}</span>}
+                <button
+                  onClick={createGame}
+                  disabled={newGameSaving}
+                  className="btn btn-primary btn-sm"
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {newGameSaving ? 'Сохранение…' : 'Создать игру'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Поиск по AppRoute DTU-каталогу для нахождения service ID */}
+          <details className="mb-5" style={{ border: '1px solid var(--border)', borderRadius: 8 }}>
+            <summary style={{ padding: '10px 14px', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--navy)' }}>
+              <i className="bi bi-search" aria-hidden="true" /> Найти AppRoute Service ID по названию игры
+            </summary>
+            <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)' }}>
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
+                Введите название игры (на английском), нажмите «Найти» — получите список сервисов AppRoute.
+                DTU-сервисы (с полями аккаунта) выделены сверху. Скопируйте нужный ID в таблицу ниже.
+              </p>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={dtuSearch}
+                  onChange={(e) => setDtuSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchDtuCatalog()}
+                  className="input"
+                  placeholder="например: genshin, pubg, free fire…"
+                  style={{ flex: 1 }}
+                />
+                <button onClick={searchDtuCatalog} disabled={dtuLoading} className="btn btn-outline btn-sm">
+                  {dtuLoading ? '…' : 'Найти'}
+                </button>
+              </div>
+              {dtuError && <div style={{ fontSize: 12, color: '#ef4444', marginBottom: 8 }}>{dtuError}</div>}
+              {dtuResults.length > 0 && (
+                <div className="overflow-x-auto" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                  <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--card)' }}>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 600 }}>Название</th>
+                        <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 600 }}>Service ID</th>
+                        <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 600 }}>Type</th>
+                        <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 600 }}>Раздел</th>
+                        <th style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600 }}>Пакетов</th>
+                        <th style={{ textAlign: 'left', padding: '4px 8px', fontWeight: 600 }}>Поля аккаунта</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dtuResults.map((s) => (
+                        <tr key={s.id} style={{ borderTop: '1px solid var(--border)', background: s.hasDtuFields ? 'rgba(34,197,94,0.05)' : undefined }}>
+                          <td style={{ padding: '4px 8px', color: 'var(--navy)', fontWeight: 500 }}>
+                            {s.hasDtuFields && <span title="DTU-сервис (есть поля аккаунта)" style={{ color: '#22c55e', marginRight: 4 }}>●</span>}
+                            {s.name}
+                          </td>
+                          <td style={{ padding: '4px 8px' }}>
+                            <code
+                              style={{ background: 'var(--gray-bg)', padding: '1px 5px', borderRadius: 3, cursor: 'pointer', userSelect: 'all' }}
+                              title="Кликните, чтобы скопировать"
+                              onClick={() => navigator.clipboard.writeText(s.id)}
+                            >
+                              {s.id}
+                            </code>
+                          </td>
+                          <td style={{ padding: '4px 8px', color: 'var(--muted)', fontSize: 11 }}>{s.type || '—'}</td>
+                          <td style={{ padding: '4px 8px', color: 'var(--muted)' }}>{s.section || '—'}</td>
+                          <td style={{ padding: '4px 8px', textAlign: 'right' }}>{s.denominationsCount}</td>
+                          <td style={{ padding: '4px 8px', color: 'var(--muted)' }}>{s.fields.join(', ') || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {dtuResults.length > 0 && (
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                  Найдено: {dtuResults.length} сервисов,{' '}
+                  из них с полями аккаунта (DTU): {dtuResults.filter(s => s.hasDtuFields).length}
+                </div>
+              )}
+              {dtuResults.length === 0 && !dtuLoading && dtuSearch && !dtuError && (
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Ничего не найдено. Попробуйте другой запрос или оставьте поле пустым, чтобы увидеть все сервисы.</div>
+              )}
+            </div>
+          </details>
+
+          {gameTopupLoading ? (
+            <div className="loading-block">
+              <div className="spinner" />
+              <span>Загрузка…</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full" style={{ fontSize: 13 }}>
+                <thead className="bg-gray-bg border-b border-border">
+                  <tr>
+                    <th className="text-left p-3 font-semibold text-navy">Игра</th>
+                    <th className="text-left p-3 font-semibold text-navy" style={{ width: 80 }}>Наценка %</th>
+                    <th className="text-left p-3 font-semibold text-navy" style={{ width: 80 }}>Курс USD</th>
+                    <th className="text-left p-3 font-semibold text-navy">AppRoute Service ID</th>
+                    <th className="text-left p-3 font-semibold text-navy">Изображение URL</th>
+                    <th className="text-center p-3 font-semibold text-navy" style={{ width: 80 }}>Активна</th>
+                    <th className="text-right p-3 font-semibold text-navy" style={{ width: 100 }}>Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gameTopupGames.map((game) => (
+                    <tr key={game.id} className="border-b border-border hover:bg-gray-bg">
+                      {editingGameId === game.id ? (
+                        <>
+                          <td className="p-3 font-semibold text-navy">{game.name}</td>
+                          <td className="p-3">
+                            <input
+                              type="number"
+                              value={String(editGameData.markup_percent ?? game.markup_percent)}
+                              onChange={(e) => setEditGameData({ ...editGameData, markup_percent: parseFloat(e.target.value) })}
+                              className="input"
+                              style={{ width: 70 }}
+                              min={0}
+                              step={0.5}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <input
+                              type="number"
+                              value={String(editGameData.usd_to_rub_rate ?? game.usd_to_rub_rate)}
+                              onChange={(e) => setEditGameData({ ...editGameData, usd_to_rub_rate: parseFloat(e.target.value) })}
+                              className="input"
+                              style={{ width: 70 }}
+                              min={1}
+                              step={0.5}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 160 }}>
+                              <input
+                                type="text"
+                                value={String(editGameData.approute_service_id ?? game.approute_service_id ?? '')}
+                                onChange={(e) => setEditGameData({ ...editGameData, approute_service_id: e.target.value || null })}
+                                className="input"
+                                style={{ width: '100%', fontSize: 12 }}
+                                placeholder="service_id (одиночный)"
+                              />
+                              <textarea
+                                value={
+                                  editGameData.approute_service_ids !== undefined
+                                    ? (editGameData.approute_service_ids ? JSON.stringify(editGameData.approute_service_ids) : '')
+                                    : (game.approute_service_ids ? JSON.stringify(game.approute_service_ids) : '')
+                                }
+                                onChange={(e) => {
+                                  const v = e.target.value.trim()
+                                  try {
+                                    setEditGameData({ ...editGameData, approute_service_ids: v ? JSON.parse(v) : null })
+                                  } catch {
+                                    setEditGameData({ ...editGameData, approute_service_ids: v as any })
+                                  }
+                                }}
+                                className="input"
+                                rows={2}
+                                style={{ width: '100%', fontSize: 11, fontFamily: 'monospace', resize: 'vertical' }}
+                                placeholder={'{"cis":"id1","global":"id2"}'}
+                              />
+                            </div>
+                          </td>
+                          <td className="p-3" style={{ minWidth: 200 }}>
+                            <ImageUploadField
+                              value={String(editGameData.image_url ?? game.image_url ?? '')}
+                              onChange={(url) => setEditGameData({ ...editGameData, image_url: url || null })}
+                            />
+                          </td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(editGameData.is_active ?? game.is_active)}
+                              onChange={(e) => setEditGameData({ ...editGameData, is_active: e.target.checked })}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="flex gap-1.5 justify-end">
+                              <button
+                                onClick={() => saveGame(game.id)}
+                                disabled={gameSaving}
+                                className="btn btn-sm btn-primary"
+                              >
+                                <i className="bi bi-check-lg" aria-hidden="true" />
+                              </button>
+                              <button
+                                onClick={() => { setEditingGameId(null); setEditGameData({}) }}
+                                className="btn btn-sm btn-ghost"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="p-3">
+                            <div className="font-semibold text-navy">{game.name}</div>
+                            <div className="text-muted" style={{ fontSize: 11 }}>{game.slug}</div>
+                          </td>
+                          <td className="p-3 text-navy">{game.markup_percent}%</td>
+                          <td className="p-3 text-navy">{game.usd_to_rub_rate}</td>
+                          <td className="p-3">
+                            {game.approute_service_id && (
+                              <div><code style={{ fontSize: 11 }}>{game.approute_service_id}</code></div>
+                            )}
+                            {game.approute_service_ids && (
+                              <div style={{ marginTop: 2 }}>
+                                {Object.entries(game.approute_service_ids).map(([region, sid]) => (
+                                  <div key={region} style={{ fontSize: 11 }}>
+                                    <span style={{ color: 'var(--muted)', marginRight: 4 }}>{region}:</span>
+                                    <code>{sid}</code>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {!game.approute_service_id && !game.approute_service_ids && (
+                              <span style={{ fontSize: 11, color: '#f59e0b' }}>не задан</span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {game.image_url ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <img src={game.image_url} alt="" style={{ width: 28, height: 28, objectFit: 'cover', borderRadius: 4 }} />
+                                <span className="text-muted" style={{ fontSize: 11, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{game.image_url}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted" style={{ fontSize: 11 }}>—</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">{game.is_active ? <i className="bi bi-check-circle-fill" style={{ color: '#22c55e' }} aria-hidden="true" /> : '—'}</td>
+                          <td className="p-3 text-right">
+                            <button
+                              onClick={() => { setEditingGameId(game.id); setEditGameData({}) }}
+                              className="btn btn-sm btn-ghost"
+                            >
+                              Редактировать
+                            </button>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

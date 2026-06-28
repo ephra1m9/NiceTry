@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Product } from '@/types'
 import { useCart } from '@/hooks/useCart'
 import { formatProductTitle } from '@/lib/utils'
+import { BI } from '@/components/ui/BI'
 
 /**
  * Карточка товара в стиле эталона index.html (.pcard):
@@ -135,9 +136,7 @@ export function PCard({ product }: { product: Product }) {
             <span />
           )}
           <button className="fav" aria-label="В избранное" onClick={stop}>
-            <svg className="ic ic-sm" viewBox="0 0 24 24">
-              <path d="M12 21C5 14 3 9 6 6c2-2 5-1 6 1 1-2 4-3 6-1 3 3 1 8-6 15z" />
-            </svg>
+            <BI name="heart" size="sm" />
           </button>
         </div>
         <div>
@@ -154,9 +153,7 @@ export function PCard({ product }: { product: Product }) {
 
         <div className="meta">
           <span className="star">
-            <svg width="13" height="13" fill="#E8A33D" viewBox="0 0 24 24">
-              <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" />
-            </svg>
+            <i className="bi bi-star-fill" style={{ fontSize: 13, color: '#E8A33D', lineHeight: 1 }} aria-hidden="true" />
             {rating}
           </span>
           <span>{sales.toLocaleString('ru-RU').replace(/,/g, ' ')} прод.</span>
@@ -189,9 +186,7 @@ export function PCard({ product }: { product: Product }) {
             </span>
           </div>
           <button className="add" aria-label="В корзину" onClick={handleAdd}>
-            <svg className="ic" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <BI name="plus-lg" />
           </button>
         </div>
       </div>

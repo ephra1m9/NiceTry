@@ -359,7 +359,7 @@ export default function LoginPage() {
                   />
                   <div className="mt-1.5 text-[13px] min-h-[18px]">
                     {nickState === 'checking' && <span className="text-muted-2">Проверяем…</span>}
-                    {nickState === 'free' && <span className="text-green-600">✓ Ник свободен</span>}
+                    {nickState === 'free' && <span className="text-green-600"><i className="bi bi-check-lg" aria-hidden="true" /> Ник свободен</span>}
                     {nickState === 'taken' && <span className="text-red-600">Этот ник уже занят</span>}
                     {nickState === 'invalid' && <span className="text-red-600">{nickError}</span>}
                     {nickState === 'idle' && (

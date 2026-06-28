@@ -10,6 +10,7 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import Spinner from '@/components/ui/Spinner'
 import Link from 'next/link'
 import { formatProductTitle } from '@/lib/utils'
+import { BI } from '@/components/ui/BI'
 
 const PAGE_SIZE = 50
 
@@ -161,10 +162,7 @@ export default function CategoryPage() {
       <div className="container py-10">
         <div className="empty-state card max-w-lg mx-auto">
           <div className="ico">
-            <svg className="ic" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
+            <BI name="info-circle" />
           </div>
           <h3>Категория не найдена</h3>
           <p>Возможно, ссылка устарела. Загляните в общий каталог — нужный товар наверняка там.</p>
@@ -224,10 +222,7 @@ export default function CategoryPage() {
           ) : products.length === 0 ? (
             <div className="empty-state card">
               <div className="ico">
-                <svg className="ic" viewBox="0 0 24 24">
-                  <rect x="4" y="4" width="16" height="16" rx="3" />
-                  <path d="M4 9h16" />
-                </svg>
+                <BI name="grid" />
               </div>
               <h3>Товары не найдены</h3>
               <p>Попробуйте изменить фильтры или сбросить их — нужный товар наверняка есть в каталоге.</p>

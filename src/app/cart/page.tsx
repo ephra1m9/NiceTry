@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/useUser'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Card from '@/components/ui/Card'
+import { BI } from '@/components/ui/BI'
 import { formatProductTitle } from '@/lib/utils'
 
 export default function CartPage() {
@@ -60,11 +61,7 @@ export default function CartPage() {
       <div className="container py-10">
         <div className="empty-state card max-w-lg mx-auto">
           <div className="ico">
-            <svg className="ic" viewBox="0 0 24 24">
-              <circle cx="9" cy="20" r="1.4" />
-              <circle cx="18" cy="20" r="1.4" />
-              <path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" />
-            </svg>
+            <BI name="cart3" />
           </div>
           <h3>Корзина пуста</h3>
           <p>Добавьте товары из каталога, чтобы оформить заказ.</p>
@@ -128,7 +125,7 @@ export default function CartPage() {
                             onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                           >
-                            <svg className="ic" viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
+                            <BI name="dash-lg" />
                           </button>
                           <span className="val">{item.quantity}</span>
                           <button
@@ -136,7 +133,7 @@ export default function CartPage() {
                             aria-label="Увеличить"
                             onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                           >
-                            <svg className="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                            <BI name="plus-lg" />
                           </button>
                         </div>
                       </>
@@ -154,7 +151,7 @@ export default function CartPage() {
                       aria-label="Удалить из корзины"
                       title="Удалить"
                     >
-                      <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13" /></svg>
+                      <BI name="trash3" size="sm" />
                     </button>
                   </div>
                 </div>
@@ -166,7 +163,7 @@ export default function CartPage() {
             onClick={clearCart}
             className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-red transition-colors px-1 py-1"
           >
-            <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13" /></svg>
+            <BI name="trash3" size="sm" />
             Очистить корзину
           </button>
         </div>
@@ -198,13 +195,13 @@ export default function CartPage() {
                 </div>
                 {promoError && (
                   <p className="field-error">
-                    <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M12 8v4M12 16h.01M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>
+                    <BI name="info-circle" size="sm" />
                     {promoError}
                   </p>
                 )}
                 {promoApplied && !promoError && (
                   <p className="mt-1.5 text-[12.5px] text-green font-medium flex items-center gap-1.5">
-                    <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                    <BI name="check-lg" size="sm" />
                     Промокод применён
                   </p>
                 )}

@@ -301,7 +301,7 @@ export default function ProxyPurchase({ embedded = false }: { embedded?: boolean
           /* ======== УСПЕХ ======== */
           <div className="px6-success">
             <div className="px6-success-top">
-              <span className="px6-success-ic">✓</span>
+              <span className="px6-success-ic"><i className="bi bi-check-lg" aria-hidden="true" /></span>
               <div>
                 <div className="px6-success-title">Прокси куплены</div>
                 <div className="px6-success-sub">
@@ -309,7 +309,7 @@ export default function ProxyPurchase({ embedded = false }: { embedded?: boolean
                 </div>
               </div>
               <button className="px6-btn px6-btn--ghost px6-copyall" onClick={copyAll}>
-                {copiedAll ? '✓ Скопировано' : 'Копировать все'}
+                {copiedAll ? 'Скопировано' : 'Копировать все'}
               </button>
             </div>
 
@@ -323,7 +323,7 @@ export default function ProxyPurchase({ embedded = false }: { embedded?: boolean
                     {endDate(p) && <span className="px6-proxy-end">до {endDate(p)}</span>}
                   </div>
                   <button className="px6-btn px6-btn--ghost px6-copyone" onClick={() => copyOne(p)}>
-                    {copiedId === p.id ? '✓' : 'Копировать'}
+                    {copiedId === p.id ? 'Скопировано' : 'Копировать'}
                   </button>
                 </div>
               ))}

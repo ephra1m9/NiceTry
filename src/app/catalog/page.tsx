@@ -7,6 +7,7 @@ import { Product, Category } from '@/types'
 import { PCard } from '@/components/PCard'
 import { ProductFilters, FilterState } from '@/components/ProductFilters'
 import { findCatalogGroup } from '@/lib/catalog-groups'
+import { BI } from '@/components/ui/BI'
 
 // Размер страницы каталога. API /api/products отдаёт максимум 200 за запрос (clampInt),
 // 50 — баланс между «не грузить всё разом» и числом нажатий «Показать ещё».
@@ -99,9 +100,7 @@ function CatalogContent() {
         {group && (
           <Link href="/catalog" className="badge badge-instant mt-2 inline-flex items-center gap-1.5 !h-7 !px-2.5">
             {group.label}
-            <svg className="ic ic-sm" viewBox="0 0 24 24" style={{ width: 13, height: 13 }}>
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
+            <BI name="x-lg" size="sm" />
           </Link>
         )}
       </div>
@@ -130,10 +129,7 @@ function CatalogContent() {
           ) : products.length === 0 ? (
             <div className="empty-state card">
               <div className="ico">
-                <svg className="ic" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.2-3.2" />
-                </svg>
+                <BI name="search" />
               </div>
               <h3>Товары не найдены</h3>
               <p>Попробуйте изменить запрос или сбросить фильтры — возможно, нужный товар в другой категории.</p>

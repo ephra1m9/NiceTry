@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
 import OrderChat from '@/components/OrderChat'
+import { BI } from '@/components/ui/BI'
 import { formatProductTitle } from '@/lib/utils'
 
 interface Order {
@@ -74,7 +75,7 @@ export default function OrderPage() {
       <div className="container py-10">
         <div className="empty-state card max-w-lg mx-auto">
           <div className="ico">
-            <svg className="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
+            <BI name="info-circle" />
           </div>
           <h3>Заказ не найден</h3>
           <p>Возможно, ссылка устарела или заказ принадлежит другому аккаунту.</p>
@@ -97,7 +98,7 @@ export default function OrderPage() {
         {/* Успешное оформление */}
         {order.status === 'delivered' && (
           <div className="alert alert-success mb-6">
-            <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+            <BI name="check-lg" size="sm" />
             <div>
               <div className="font-semibold">Заказ успешно выполнен!</div>
               <p className="text-[13px] opacity-90 mt-0.5">Все товары доставлены. Коды активации указаны ниже.</p>
@@ -139,7 +140,7 @@ export default function OrderPage() {
                         >
                           {copiedId === item.id ? (
                             <>
-                              <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                              <BI name="check-lg" size="sm" />
                               Готово
                             </>
                           ) : (

@@ -12,6 +12,7 @@ import OrdersSection from '@/components/OrdersSection'
 import ProxyOrdersSection from '@/components/ProxyOrdersSection'
 import TelegramOrdersSection from '@/components/TelegramOrdersSection'
 import EsimOrdersSection from '@/components/EsimOrdersSection'
+import { BI } from '@/components/ui/BI'
 
 function initials(email?: string): string {
   if (!email) return 'NT'
@@ -36,7 +37,7 @@ export default function ProfilePage() {
       <div className="container py-10">
         <div className="empty-state card max-w-lg mx-auto">
           <div className="ico">
-            <svg className="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0114 0" /></svg>
+            <BI name="person" />
           </div>
           <h3>Пользователь не найден</h3>
           <p>Похоже, сессия истекла. Войдите снова, чтобы открыть профиль.</p>
@@ -81,7 +82,7 @@ export default function ProfilePage() {
         <Card>
           <div className="flex items-center justify-between gap-2 mb-1">
             <h2>Баланс</h2>
-            <svg className="ic text-blue-700" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M3 10h18" /></svg>
+            <BI name="credit-card" className="text-blue-700" />
           </div>
           <div className="text-[34px] leading-none font-extrabold text-navy mb-5 mt-2">
             {new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(user.balance)} ₽
@@ -140,12 +141,12 @@ export default function ProfilePage() {
             <Button variant={copied ? 'secondary' : 'primary'} onClick={copy} className="sm:w-auto">
               {copied ? (
                 <>
-                  <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                  <BI name="check-lg" size="sm" />
                   Скопировано
                 </>
               ) : (
                 <>
-                  <svg className="ic ic-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <BI name="copy" size="sm" />
                   Копировать
                 </>
               )}

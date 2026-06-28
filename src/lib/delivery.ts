@@ -12,6 +12,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import {
   createShopOrder,
+  createDtuOrder,
   waitForOrder,
   unhideVouchers,
   AppRouteError,
@@ -139,6 +140,29 @@ export async function deliverInstant(
     if (!error) out.push(key.key_value)
   }
   return out
+}
+
+/**
+ * Выдача игрового пополнения через AppRoute DTU.
+ * denominationId — AppRoute denomination_id (из game_topup_denominations).
+ * fields — поля аккаунта игрока (uid/player_id/server/…) в формате [{ key, value }].
+ * referenceId — уникальный идентификатор заказа (UUID).
+ *
+ * DTU не возвращает voucher-код — результат: сообщение об успешном зачислении.
+ * Polling через waitForOrder аналогичен instant-заказам (AppRoute), но тип ordersType='dtu'.
+ */
+export async function deliverGameTopup(
+  denominationId: string,
+  fields: Array<{ key: string; value: string }>,
+  referenceId: string
+): Promise<string[]> {
+  const created = await createDtuOrder(referenceId, denominationId, fields, { quantity: 1 })
+  const orderId = created.data?.orderId
+  const settled = await waitForOrder({ orderId, referenceId })
+  if (settled?.status === 'CANCELLED') {
+    throw new AppRouteError('DTU order cancelled by provider', AppRouteStatusCode.UPSTREAM_ERROR, 200, created.traceId)
+  }
+  return [`Пополнение зачислено. ID транзакции: ${orderId || referenceId}`]
 }
 
 /**

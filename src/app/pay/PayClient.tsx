@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button'
 import Alert from '@/components/ui/Alert'
 import Input from '@/components/ui/Input'
 import { NICKNAME_MIN, NICKNAME_MAX } from '@/lib/auth/nickname'
+import { BI } from '@/components/ui/BI'
 
 // Страница ожидания оплаты pay4game (PAYMENTS_MODE=live).
 // Поллит /api/pay4game/status. Пока pending — показывает QR (desktop=картинка, mobile=iframe
@@ -159,7 +160,7 @@ export default function PayClient({ invoiceId, payUrl }: { invoiceId: string; pa
               />
               <div className="mt-1.5 text-[13px] min-h-[18px]">
                 {nickState === 'checking' && <span className="text-muted-2">Проверяем…</span>}
-                {nickState === 'free' && <span className="text-green-600">✓ Ник свободен</span>}
+                {nickState === 'free' && <span className="text-green-600"><i className="bi bi-check-lg" aria-hidden="true" /> Ник свободен</span>}
                 {nickState === 'taken' && <span className="text-red-600">Этот ник уже занят</span>}
                 {nickState === 'invalid' && <span className="text-red-600">{nickError}</span>}
                 {nickState === 'idle' && (
@@ -278,7 +279,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PaidBanner({ email }: { email?: string }) {
   return (
     <div className="alert alert-success mb-5">
-      <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+      <BI name="check-lg" size="sm" />
       <div>
         <div className="font-semibold">Оплата прошла</div>
         {email && <p className="text-[13px] opacity-90 mt-0.5">Заказ оформлен на {email}.</p>}

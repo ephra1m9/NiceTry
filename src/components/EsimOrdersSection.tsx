@@ -132,7 +132,7 @@ export default function EsimOrdersSection() {
         </div>
       ) : error ? (
         <div className="alert alert-error">
-          <svg className="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
+          <i className="bi bi-info-circle ic ic-sm" aria-hidden="true" />
           <span>{error}</span>
         </div>
       ) : (
@@ -192,7 +192,7 @@ function EsimOrderCard({ order }: { order: EsimOrderRow }) {
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <span className="text-[12.5px] text-muted-2">Данные активации</span>
             <button className="btn btn-ghost btn-sm" onClick={copyActivation}>
-              {copied ? '✓ Скопировано' : 'Копировать'}
+              {copied ? 'Скопировано' : 'Копировать'}
             </button>
           </div>
           <pre className="text-[13px] whitespace-pre-wrap bg-blue-50/40 rounded-md p-2.5 m-0 break-all">

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import Link from 'next/link'
+import { BI } from '@/components/ui/BI'
 
 // Дашборд читает агрегаты по всем заказам/пользователям. Доступ к странице уже ограничен
 // admin/layout.tsx (проверка is_admin + редирект), поэтому здесь безопасно использовать
@@ -98,14 +99,14 @@ export default async function AdminDashboard() {
       {/* Статистика */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Заказы сегодня', value: String(todayOrdersCount || 0), icon: <><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" /></> },
-          { label: 'Выручка сегодня', value: `${todayRevenue.toFixed(2)} ₽`, icon: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M3 10h18" /></> },
-          { label: 'Новые пользователи', value: String(newUsersCount || 0), icon: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0114 0" /></> },
-          { label: 'Всего пользователей', value: String(totalUsers || 0), icon: <><circle cx="9" cy="8" r="3.5" /><path d="M2 20a7 7 0 0114 0M17 4a3.5 3.5 0 010 7" /></> },
+          { label: 'Заказы сегодня', value: String(todayOrdersCount || 0), icon: 'cart3' },
+          { label: 'Выручка сегодня', value: `${todayRevenue.toFixed(2)} ₽`, icon: 'credit-card' },
+          { label: 'Новые пользователи', value: String(newUsersCount || 0), icon: 'person' },
+          { label: 'Всего пользователей', value: String(totalUsers || 0), icon: 'people' },
         ].map((s) => (
           <div key={s.label} className="card card-pad flex items-center gap-3.5">
             <span className="flex items-center justify-center w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex-none">
-              <svg className="ic" viewBox="0 0 24 24">{s.icon}</svg>
+              <BI name={s.icon} />
             </span>
             <div className="min-w-0">
               <div className="text-muted-2 text-[12.5px] leading-tight">{s.label}</div>

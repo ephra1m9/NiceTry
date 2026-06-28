@@ -318,7 +318,10 @@ export default function EsimClient({ sessionEmail }: { sessionEmail: string | nu
               fontSize: 30, fontWeight: 800, margin: '0 auto 16px',
             }}
           >
-            {success.status === 'delivered' ? '✓' : '⏳'}
+            {success.status === 'delivered'
+            ? <i className="bi bi-check-lg" aria-hidden="true" />
+            : <i className="bi bi-hourglass-split" aria-hidden="true" />
+          }
           </div>
           <h2 className="text-[20px] font-bold mb-2">
             {success.status === 'delivered' ? 'eSIM активирована' : 'Заказ оформлен'}

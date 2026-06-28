@@ -5,6 +5,7 @@ import Button from './ui/Button'
 import Input from './ui/Input'
 import Card from './ui/Card'
 import { formatProductTitle } from '@/lib/utils'
+import { BI } from '@/components/ui/BI'
 
 interface ProductFiltersProps {
   onFilterChange: (filters: FilterState) => void
@@ -75,10 +76,7 @@ export function ProductFilters({ onFilterChange, categories = [], defaultExpande
       <div className="card-pad">
         {/* Поиск — всегда виден */}
         <div className="relative mb-3">
-          <svg className="ic absolute left-3 top-1/2 -translate-y-1/2 text-muted-2 pointer-events-none" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-3.2-3.2" />
-          </svg>
+          <i className="bi bi-search ic absolute left-3 top-1/2 -translate-y-1/2 text-muted-2 pointer-events-none" aria-hidden="true" />
           <Input
             type="search"
             aria-label="Поиск товаров"
@@ -138,20 +136,13 @@ export function ProductFilters({ onFilterChange, categories = [], defaultExpande
           className="flex items-center justify-between w-full text-sm text-blue-700 font-semibold py-1.5 mt-3 hover:text-blue transition-colors"
         >
           <span className="inline-flex items-center gap-2">
-            <svg className="ic ic-sm" viewBox="0 0 24 24">
-              <path d="M4 6h16M7 12h10M10 18h4" />
-            </svg>
+            <BI name="sliders" size="sm" />
             Ещё фильтры
             {hasActiveFilters && (
               <span className="badge badge-instant !h-5 !px-1.5 !text-[10.5px]">активны</span>
             )}
           </span>
-          <svg
-            className={`ic ic-sm transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            viewBox="0 0 24 24"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <i className={`bi bi-chevron-down ic ic-sm transition-transform ${isExpanded ? 'rotate-180' : ''}`} aria-hidden="true" />
         </button>
 
         {/* Дополнительные фильтры */}

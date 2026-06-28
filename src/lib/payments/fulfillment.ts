@@ -14,7 +14,7 @@
 // непоставленная позиция остаётся 'pending', заказ — 'paid' (в работе), вебхук отвечает 200.
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { deliverInstant, deliverEsim, DeliveryPendingError } from '@/lib/delivery'
+import { deliverInstant, deliverEsim, deliverGameTopup, DeliveryPendingError } from '@/lib/delivery'
 import { safeGetOrCreateChat, safePostSystemMessage } from '@/lib/chat'
 import type { Product } from '@/types'
 
@@ -86,12 +86,35 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
   for (const it of items ?? []) {
     if (it.delivery_status === 'delivered' && it.voucher_code) continue
 
+    const itemFormData = (it.form_data as Record<string, unknown> | null) ?? undefined
+
+    // Игровой донат через AppRoute DTU: product_id=null, form_data.type='game_topup'.
+    if (!it.product_id && itemFormData?.type === 'game_topup') {
+      const gfd = itemFormData as { type: string; denomination_id: string; account_data: Record<string, string> }
+      const dtuFields = Object.entries(gfd.account_data || {}).map(([key, value]) => ({ key, value }))
+      try {
+        const codes = await deliverGameTopup(gfd.denomination_id, dtuFields, invoiceId)
+        await supabaseAdmin
+          .from('order_items')
+          .update({ voucher_code: codes.join('\n'), delivery_status: 'delivered' })
+          .eq('id', it.id)
+        await supabaseAdmin.from('orders').update({ status: 'delivered' }).eq('id', order.id).eq('status', 'paid')
+        deliveredLines.push(`📦 ${it.product_name}\n✅ ${codes.join('\n')}`)
+        continue
+      } catch (e) {
+        console.error('[payments/fulfillment] game_topup delivery failed:', it.id, e)
+      }
+      allDelivered = false
+      pendingNames.push(it.product_name)
+      continue
+    }
+
     // eSIM (Dessly): цена динамическая, у позиции нет product_id (не лежит в каталоге) —
     // выдача роутится по form_data.type, а не по supplier товара (см. lib/dessly/esim/order/route.ts).
-    const formDataEsim = (it.form_data as Record<string, string> | null) ?? undefined
+    const formDataEsim = itemFormData as Record<string, string> | undefined
     if (!it.product_id && formDataEsim?.type === 'esim') {
       try {
-        const codes = await deliverEsim(formDataEsim.variant_id, formDataEsim.product_id, invoiceId)
+        const codes = await deliverEsim(formDataEsim!.variant_id, formDataEsim!.product_id, invoiceId)
         if (codes.length > 0) {
           await supabaseAdmin
             .from('order_items')
@@ -115,7 +138,6 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
       continue
     }
 
-    // Без product_id (фолбэк-каталог) — выдаёт менеджер.
     if (!it.product_id) {
       allDelivered = false
       pendingNames.push(it.product_name)
@@ -136,8 +158,6 @@ export async function markOrderPaidAndDeliver(invoiceId: string, paymentUuid?: s
     }
 
     try {
-      // referenceId выдачи = invoice_id (= supplier_reference_id заказа). form_data сохранён на
-      // чекауте (нужен Dessly: invite-ссылка/регион/издание); для AppRoute/ключей он не требуется.
       const formData = (it.form_data as Record<string, string> | null) ?? undefined
       const codes = await deliverInstant(product as unknown as Product, Number(it.quantity) || 1, invoiceId, formData)
       if (codes.length > 0) {

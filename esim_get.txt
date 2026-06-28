@@ -1,0 +1,807 @@
+Всего вариантов на странице: 200 next_cursor: PzAbODEPfSB4WjYcZRUcMClvBRMZZywNByYYC2MSLH9qYztkKSoecX4QfAAqNm9BOlFZGggiLCwJAAUCHxs3ej4OBzkLIQV6VXgTRGwgag==
+
+=== geo_scope (значение → кол-во) ===
+country: 193
+continent: 5
+global: 2
+
+=== esim_package_type (значение → кол-во) ===
+DATA-VOICE-SMS: 101
+DATA-ONLY: 99
+
+=== country (значение → кол-во, топ-20) ===
+∅: 7
+AF: 2
+AX: 2
+AL: 2
+DZ: 2
+AD: 2
+AI: 2
+AG: 2
+AR: 2
+AM: 2
+AW: 2
+AU: 2
+AT: 2
+AZ: 2
+BS: 2
+BH: 2
+BD: 2
+BB: 2
+BY: 2
+BE: 2
+
+=== дубли по name (вариантов с одинаковым именем) ===
+(дублей нет)
+
+=== первые 5 вариантов целиком (raw) ===
+[
+  {
+    "id": "anhoLl85dXgcVmAXB1VtdEJbHBYgAABqZkNrBghsWikGA0AB",
+    "name": "Afghanistan eSIM (Data + Voice + SMS)",
+    "description": "eSIM packages for Afghanistan. Includes data, voice calls, and SMS.",
+    "image": "https://desslyhub.com/storage/catalog/2/af.png",
+    "attributes": {
+      "country": "AF",
+      "geo_scope": "country",
+      "esim_package_type": "DATA-VOICE-SMS"
+    }
+  },
+  {
+    "id": "anhoLl85dXgcVG8QAFVtdkhZHBUgAVJqZEBsUQJtXykFBUsC",
+    "name": "Afghanistan eSIM (Data Only)",
+    "description": "eSIM packages for Afghanistan.",
+    "image": "https://desslyhub.com/storage/catalog/1/af.png",
+    "attributes": {
+      "country": "AF",
+      "geo_scope": "country",
+      "esim_package_type": "DATA-ONLY"
+    }
+  },
+  {
+    "id": "anhoLl85LXUcB2lABlVtdRFbHExwAFBqNUw6UgQ0CH4FBE9R",
+    "name": "Africa eSIM (Data Only)",
+    "description": "eSIM packages for Africa. Coverage in 12 countries.",
+    "image": "https://desslyhub.com/storage/catalog/1542/afrika2.png",
+    "attributes": {
+      "continent": "Africa",
+      "esim_countries": [
+        "EG",
+        "KE",
+        "MA",
+        "MG",
+        "MU",
+        "NG",
+        "NI",
+        "TN",
+        "TZ",
+        "UG",
+        "ZA",
+        "ZM"
+      ],
+      "geo_scope": "continent",
+      "esim_package_type": "DATA-ONLY"
+    }
+  },
+  {
+    "id": "anhoLl85dXkcAW5ABFVtdhMPHEwlVVFqa0FrBQE3UiwKCR8C",
+    "name": "Aland Islands eSIM (Data + Voice + SMS)",
+    "description": "eSIM packages for Aland Islands. Includes data, voice calls, and SMS.",
+    "image": "https://desslyhub.com/storage/catalog/4/ax.png",
+    "attributes": {
+      "country": "AX",
+      "geo_scope": "country",
+      "esim_package_type": "DATA-VOICE-SMS"
+    }
+  },
+  {
+    "id": "anhoLl85dXgcVjsRVVVtdRMKHBZ7UldqYhc_AgYxWysKUU0E",
+    "name": "Aland Islands eSIM (Data Only)",
+    "description": "eSIM packages for Aland Islands.",
+    "image": "https://desslyhub.com/storage/catalog/3/ax.png",
+    "attributes": {
+      "country": "AX",
+      "geo_scope": "country",
+      "esim_package_type": "DATA-ONLY"
+    }
+  }
+]
+20:07:08.953 → GET /api/v1/catalog/esim/products/anhoLl85dXgcVmAXB1VtdEJbHBYgAABqZkNrBghsWikGA0AB
+
+=== detail variant_id=anhoLl85dXgcVmAXB1VtdEJbHBYgAABqZkNrBghsWikGA0AB (HTTP 200) ===
+{
+  "success": true,
+  "data": {
+    "id": "anhoLl85dXgcVmAXB1VtdEJbHBYgAABqZkNrBghsWikGA0AB",
+    "name": "Afghanistan eSIM (Data + Voice + SMS)",
+    "description": "eSIM packages for Afghanistan. Includes data, voice calls, and SMS.",
+    "image": "https://desslyhub.com/storage/catalog/2/af.png",
+    "attributes": {
+      "country": "AF",
+      "geo_scope": "country",
+      "esim_package_type": "DATA-VOICE-SMS"
+    },
+    "products": [
+      {
+        "id": "anhoLl85dXgcVjhEAFVtdUMOHBV3U1FqYUY7AFdhW3hVUhpQ",
+        "name": "1GB, 31 Day",
+        "description": "1GB of data, valid for 31 Day(s), 10 voice minutes, 50 SMS",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 21.0136,
+        "attributes": {
+          "esim_activation_type": "on_first_use",
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "1",
+          "esim_data_unit": "GB",
+          "esim_extra_info": "We are assinging +33 french number",
+          "esim_network": "Orange",
+          "esim_sms_quantity": "50",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "31",
+          "esim_voice_minutes": "10",
+          "esim_zones": [
+            {
+              "calls": "15 minutes",
+              "countries": [
+                "Andorra",
+                "Azores",
+                "Åland Islands",
+                "Austria",
+                "Balearic Islands",
+                "Belgium",
+                "Bosnia and Herzegovina",
+                "Bulgaria",
+                "Canary Islands",
+                "Corfu",
+                "Crete",
+                "Croatia",
+                "Cyprus",
+                "Cyclades Islands",
+                "Czech Republic",
+                "Denmark",
+                "Estonia",
+                "Faroe Islands",
+                "Finland",
+                "France mainland (+ Desirade Island, Guadeloupe, French Guiana, Marie-Galante Island, Martinique, Réunion Island, Mayotte, Saint Barthelemy, Saint Martin, Saint Pierre and Miquelon)",
+                "Germany",
+                "Georgia",
+                "Gibraltar",
+                "Greece",
+                "Guernsey",
+                "Hungary",
+                "Ireland",
+                "Iceland",
+                "Italy",
+                "Jersey",
+                "Latvia",
+                "Liechtenstein",
+                "Lithuania",
+                "Luxembourg",
+                "Madeira",
+                "Malta",
+                "Isle of Man",
+                "Netherlands",
+                "Norway",
+                "Poland",
+                "Portugal",
+                "Rhodes",
+                "Romania",
+                "Spain",
+                "United Kingdom",
+                "San Marino",
+                "Sardinia",
+                "Serbia",
+                "Sicily",
+                "Slovakia",
+                "Slovenia",
+                "Switzerland",
+                "Sweden",
+                "Ukraine",
+                "Vatican"
+              ],
+              "data": "20GB",
+              "id": "zone1",
+              "name": "Zone 1 – (70+ destinations worldwide and in all Europe)",
+              "sms": "50"
+            },
+            {
+              "calls": "15-minute calls",
+              "countries": [
+                "Bahrain",
+                "Egypt",
+                "New Caledonia",
+                "Kenya",
+                "Kuwait",
+                "Mauritius",
+                "Nepal",
+                "Oman",
+                "Paraguay",
+                "Qatar",
+                "Dominican Republic",
+                "Sri Lanka"
+              ],
+              "data": "15GB",
+              "id": "zone2",
+              "name": "Zone 2 (12 destinations)",
+              "sms": "50"
+            },
+            {
+              "calls": "15-minute calls",
+              "countries": [
+                "Bolivia",
+                "Republic of the Congo (Congo-Brazzaville)",
+                "Ethiopia",
+                "Ghana",
+                "Jamaica",
+                "Liberia",
+                "Mozambique",
+                "Niger",
+                "Nigeria",
+                "Uganda",
+                "Rwanda",
+                "Seychelles",
+                "Sierra Leone",
+                "Tanzania",
+                "Chad",
+                "Zambia"
+              ],
+              "data": "10GB",
+              "id": "zone3",
+              "name": "Zone 3 (16 destinations)",
+              "sms": "50"
+            },
+            {
+              "calls": "10-minute calls",
+              "countries": [
+                "Azerbaijan",
+                "Brunei",
+                "Fiji",
+                "French Polynesia",
+                "Iraq",
+                "Lesotho",
+                "Mauritania",
+                "Mongolia",
+                "Palestine",
+                "Panama",
+                "Papua New Guinea",
+                "Tonga",
+                "Vanuatu"
+              ],
+              "data": "5GB",
+              "id": "zone4",
+              "name": "Zone 4 (14 destinations)",
+              "sms": "50"
+            },
+            {
+              "calls": "10-minute calls",
+              "countries": [
+                "Afghanistan",
+                "Antigua and Barbuda",
+                "Aruba",
+                "Bahamas",
+                "Barbados",
+                "Cape Verde",
+                "Cuba",
+                "Curaçao",
+                "Bonaire",
+                "Saba",
+                "Sint Eustatius",
+                "Sint Maarten (Dutch part)",
+                "Greenland",
+                "Grenada",
+                "Equatorial Guinea",
+                "Guyana",
+                "Kazakhstan",
+                "Lebanon",
+                "Anguilla",
+                "Montserrat",
+                "Turks and Caicos",
+                "British Virgin Islands",
+                "Saint Kitts and Nevis",
+                "Saint Lucia",
+                "Saint Vincent and the Grenadines",
+                "Suriname",
+                "Togo",
+                "Trinidad and Tobago",
+                "Venezuela",
+                "Yemen"
+              ],
+              "data": "1GB",
+              "id": "zone5",
+              "name": "Zone 5 (30 destinations)",
+              "sms": "50"
+            },
+            {
+              "calls": "10-minute calls",
+              "countries": [
+                "All other countries not listed above"
+              ],
+              "data": "50MB",
+              "id": "zone6",
+              "name": "Zone 6 — Rest of the world",
+              "sms": "50"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+20:07:09.084 → GET /api/v1/catalog/esim/products/anhoLl85dXgcVG8QAFVtdkhZHBUgAVJqZEBsUQJtXykFBUsC
+
+=== detail variant_id=anhoLl85dXgcVG8QAFVtdkhZHBUgAVJqZEBsUQJtXykFBUsC (HTTP 200) ===
+{
+  "success": true,
+  "data": {
+    "id": "anhoLl85dXgcVG8QAFVtdkhZHBUgAVJqZEBsUQJtXykFBUsC",
+    "name": "Afghanistan eSIM (Data Only)",
+    "description": "eSIM packages for Afghanistan.",
+    "image": "https://desslyhub.com/storage/catalog/1/af.png",
+    "attributes": {
+      "country": "AF",
+      "geo_scope": "country",
+      "esim_package_type": "DATA-ONLY"
+    },
+    "products": [
+      {
+        "id": "anhoLl85dXgcVmhAAVVtdBYAHBYnAldqZRM6UFRnXHhQUh0B",
+        "name": "1GB, 7 Day",
+        "description": "1GB of data, valid for 7 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 5.9913,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "1",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "7",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVG4UBlVtdEENHExxVQZqYkJtUFc3Wn4BAUhW",
+        "name": "1GB, 30 Day",
+        "description": "1GB of data, valid for 30 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 6.8785,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "1",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "30",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVm1FDlVtd0NbHEx1VANqME1hUQRmWXgKCEhW",
+        "name": "3GB, 7 Day",
+        "description": "3GB of data, valid for 7 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 13.6164,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "3",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "7",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVDtGB1Vtd0IKHBV6CFNqMEE4AAJkWn0DUhtS",
+        "name": "3GB, 30 Day",
+        "description": "3GB of data, valid for 30 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 16.7202,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "3",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "30",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVmwXU1VtdBQAHEx2VVRqZBdhXFQzCSoKBh8F",
+        "name": "5GB, 7 Day",
+        "description": "5GB of data, valid for 7 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 26.0967,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "5",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "7",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVD9HBFVtd0AOHE0lAldqYEI7UVNmWn5WURpV",
+        "name": "5GB, 30 Day",
+        "description": "5GB of data, valid for 30 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 27.4921,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "5",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "30",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVm5NVFVtdkdcHE1yVwFqZEJtU1JmXyoCBB1S",
+        "name": "10GB, 7 Day",
+        "description": "10GB of data, valid for 7 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 40.6644,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "10",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "7",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVWsRU1VtdUEAHBYhBVVqaxBpBwhhCXgEVkkE",
+        "name": "10GB, 30 Day",
+        "description": "10GB of data, valid for 30 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 50.506,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "10",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "30",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVWxNVFVtdhRcHBZ7AVJqYUw6UwUzXiwAAEoF",
+        "name": "20GB, 30 Day",
+        "description": "20GB of data, valid for 30 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 85.4059,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "20",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "30",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVWFGVFVtdhFZHE16BFRqNhdgXAZiUy0HAU0G",
+        "name": "25GB, 30 Day",
+        "description": "25GB of data, valid for 30 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 98.5677,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "25",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "30",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVTtNUFVtdUYAHBVzCQFqNhdgVAJlDHxWAkxW",
+        "name": "50GB, 90 Day",
+        "description": "50GB of data, valid for 90 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 194.2153,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "50",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "90",
+          "esim_voice_minutes": "0"
+        }
+      },
+      {
+        "id": "anhoLl85dXgcVTxGUFVtdRVcHE0gAQFqZEQ_AQk2C3wHBUsG",
+        "name": "100GB, 180 Day",
+        "description": "100GB of data, valid for 180 Day(s)",
+        "stock": 99,
+        "max_per_order": 1,
+        "price": 329.7168,
+        "attributes": {
+          "esim_can_renew": false,
+          "esim_connectivity": "2G,3G,4G",
+          "esim_data_quantity": "100",
+          "esim_data_unit": "GB",
+          "esim_network": "D",
+          "esim_network_coverage": [
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Afghan Wireless Afghanistan",
+              "network_name": "Afghan Wireless Afghanistan",
+              "three_g": true,
+              "two_g": true
+            },
+            {
+              "five_G": false,
+              "four_G": true,
+              "network_code": "Roshan Afghanistan",
+              "network_name": "Roshan Afghanistan",
+              "three_g": true,
+              "two_g": true
+            }
+          ],
+          "esim_sms_quantity": "0",
+          "esim_throttled": false,
+          "esim_unlimited": false,
+          "esim_validity_days": "180",
+          "esim_voice_minutes": "0"
+        }
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import { BI } from '@/components/ui/BI'
 
 /**
  * Раздел «Мои прокси» в профиле (сайт + Mini App).
@@ -111,7 +112,7 @@ export default function ProxyOrdersSection() {
         </div>
       ) : error ? (
         <div className="alert alert-error">
-          <svg className="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
+          <BI name="info-circle" size="sm" />
           <span>{error}</span>
         </div>
       ) : (
@@ -174,7 +175,7 @@ function ProxyOrderCard({ order }: { order: ProxyOrderRow }) {
         </div>
         {proxies.length > 1 && (
           <button className="btn btn-secondary btn-sm" onClick={copyAll}>
-            {copiedAll ? '✓ Скопировано' : 'Копировать все'}
+            {copiedAll ? 'Скопировано' : 'Копировать все'}
           </button>
         )}
       </div>
@@ -189,7 +190,7 @@ function ProxyOrderCard({ order }: { order: ProxyOrderRow }) {
             <code className="font-mono text-[13px] text-navy break-all flex-1 min-w-[160px]">{proxyLine(p)}</code>
             {endDate(p) && <span className="text-[11.5px] text-muted whitespace-nowrap">до {endDate(p)}</span>}
             <button className="btn btn-ghost btn-sm flex-none" onClick={() => copyOne(p)}>
-              {copiedId === p.id ? '✓' : 'Копировать'}
+              {copiedId === p.id ? 'Скопировано' : 'Копировать'}
             </button>
           </div>
         ))}

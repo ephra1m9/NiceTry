@@ -96,7 +96,7 @@ function appRouteProducts(services: AppRouteService[]): Product[] {
     const slug = mapServiceToCategorySlug(svc)
     const cat = slug ? categoryBySlug(slug) : undefined
     if (!cat) continue
-    const isDtu = svc.type === 'dtu'
+    const isDtu = svc.type === 'direct_topup' || svc.type === 'dtu'
     const productType: ProductType = isDtu ? 'topup_auto' : 'instant'
 
     if (isDtu) {

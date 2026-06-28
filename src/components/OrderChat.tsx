@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Card from '@/components/ui/Card'
+import { BI } from '@/components/ui/BI'
 
 /**
  * Чат заказа: общая реализация для покупателя (/orders/[id]) и админа (/admin/orders/[id]) —
@@ -120,7 +121,7 @@ export default function OrderChat({ apiBase, role }: OrderChatProps) {
 
       {error && (
         <div className="alert alert-error mb-3">
-          <svg className="ic ic-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
+          <BI name="info-circle" size="sm" />
           <span>{error}</span>
         </div>
       )}

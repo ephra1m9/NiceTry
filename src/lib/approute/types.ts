@@ -81,10 +81,11 @@ export interface AppRouteService {
   id: string
   name: string
   /**
-   * Тип сервиса. shop/voucher → мгновенные ваучеры (instant), dtu → прямое пополнение (topup).
-   * Боевой API отдаёт "voucher"; всё, что не "dtu", обрабатывается как shop (см. catalog.ts).
+   * Тип сервиса. shop/voucher → мгновенные ваучеры (instant), direct_topup → прямое пополнение (topup).
+   * Боевой API отдаёт "voucher" для магазинных товаров и "direct_topup" для DTU (по документации).
+   * Значение "dtu" встречается в мок-данных и старых версиях API — поддерживаем оба (см. catalog.ts).
    */
-  type: 'shop' | 'dtu' | 'voucher'
+  type: 'shop' | 'dtu' | 'direct_topup' | 'voucher'
   countryCode?: string
   section?: string
   categoryName?: string

@@ -1,7 +1,9 @@
+import { BI } from '@/components/ui/BI'
+
 interface AdminStubProps {
   title: string
   subtitle: string
-  icon: JSX.Element
+  icon: string
   features: string[]
 }
 
@@ -17,7 +19,7 @@ export default function AdminStub({ title, subtitle, icon, features }: AdminStub
       <div className="card card-pad">
         <div className="flex flex-col items-center text-center py-10 px-4">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 text-blue-700 mb-4">
-            <svg className="ic" style={{ width: 28, height: 28 }} viewBox="0 0 24 24">{icon}</svg>
+            <BI name={icon} size="xl" />
           </div>
           <h3 className="mb-1.5">Раздел в разработке</h3>
           <p className="text-muted mb-6 max-w-md">Функционал будет добавлен в следующей версии.</p>
@@ -26,7 +28,7 @@ export default function AdminStub({ title, subtitle, icon, features }: AdminStub
             <ul className="space-y-1.5">
               {features.map((f) => (
                 <li key={f} className="flex items-start gap-2">
-                  <svg className="ic ic-sm mt-0.5 flex-none text-blue-700" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>
+                  <BI name="check-lg" size="sm" className="mt-0.5 flex-none text-blue-700" />
                   <span>{f}</span>
                 </li>
               ))}

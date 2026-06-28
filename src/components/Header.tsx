@@ -11,6 +11,7 @@ import { LEGAL_LINKS } from '@/components/Footer'
 import ProxyPurchase from '@/components/ProxyPurchase'
 import TelegramPurchase from '@/components/TelegramPurchase'
 import { TELEGRAM_CHANNEL_URL, hasLink } from '@/lib/links'
+import { BI } from '@/components/ui/BI'
 
 /**
  * Шапка сайта по эталону index.html:
@@ -20,23 +21,17 @@ import { TELEGRAM_CHANNEL_URL, hasLink } from '@/lib/links'
  * открывающий выезжающее меню (drawer) с категориями и действиями аккаунта.
  */
 
-// Пункты нижней навигации (иконки и подписи из index.html .catnav).
-// href ведёт на каталог с группой (?group=…) — slug'и из src/lib/catalog-groups.ts.
+// Пункты нижней навигации (Bootstrap Icons) — href ведёт на каталог с группой (?group=…).
 const CATNAV = [
-  { label: 'Steam', icon: '<path d="M5 3h14v18l-7-4-7 4z"/>', href: '/catalog?group=steam' },
-  { label: 'Mobile-игры', icon: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M11 18h2"/>', href: '/catalog?group=mobile' },
-  { label: 'Пополнения', icon: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>', href: '/catalog?group=topup' },
-  { label: 'Подписки', icon: '<path d="M4 7h16v12H4zM4 7l8 6 8-6"/>', href: '/catalog?group=subscriptions' },
-  { label: 'Gift-карты', icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M12 5v14"/>', href: '/catalog?group=gift-cards' },
-  { label: 'eSIM', icon: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 7h3M9 11h6M9 15h6"/>', href: '/esim' },
-  { label: 'Популярное', icon: '<path d="M12 3l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8z"/>', href: '/catalog?group=popular' },
+  { label: 'Steam', icon: 'bookmark', href: '/catalog?group=steam' },
+  { label: 'Mobile-игры', icon: 'phone', href: '/catalog?group=mobile' },
+  { label: 'Пополнения', icon: 'check-circle', href: '/catalog?group=topup' },
+  { label: 'Подписки', icon: 'envelope', href: '/catalog?group=subscriptions' },
+  { label: 'Gift-карты', icon: 'credit-card-2-front', href: '/catalog?group=gift-cards' },
+  { label: 'eSIM', icon: 'sim', href: '/esim' },
+  { label: 'Донат', icon: 'controller', href: '/auto-games' },
+  { label: 'Популярное', icon: 'star-fill', href: '/catalog?group=popular' },
 ]
-
-// Иконка категории «Купить прокси» (глобус) — открывает окно покупки, а не ссылку.
-const PROXY_ICON = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>'
-
-// Иконка Telegram Stars/Premium (самолётик) — открывает окно покупки, а не ссылку.
-const TELEGRAM_ICON = '<path d="M21 4L3 11l5 2 2 6 3-4 5 4z"/>'
 
 function initials(email?: string): string {
   if (!email) return 'NT'
@@ -158,7 +153,7 @@ export default function Header() {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}
           >
-            <svg className="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+            <BI name="list" />
           </button>
           <Link className="tg-header-logo" href="/" aria-label="NiceTry">
             <svg viewBox="0 0 250 56" xmlns="http://www.w3.org/2000/svg">
@@ -172,7 +167,7 @@ export default function Header() {
             <span className="av">{authUser ? initials(authUser.email ?? user?.email) : 'NT'}</span>
           </Link>
           <form className="tg-header-search" onSubmit={submitSearch} role="search">
-            <svg className="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.2-3.2" /></svg>
+            <BI name="search" />
             <input
               type="text"
               aria-label="Поиск по каталогу"
@@ -188,9 +183,7 @@ export default function Header() {
       {topbar && (
         <div className="topbar">
           <div className="container">
-            <svg className="ic tg" viewBox="0 0 24 24">
-              <path d="M21 4L3 11l5 2 2 6 3-4 5 4z" />
-            </svg>
+            <BI name="send" className="tg" />
             <span>Новые дропы ключей и промокоды каждый день —</span>
             {/* Ссылка на Telegram-канал из env (NEXT_PUBLIC_TELEGRAM_CHANNEL_URL);
                 пока не задана — ведём в каталог, чтобы полоса оставалась кликабельной. */}
@@ -202,9 +195,7 @@ export default function Header() {
               <Link href="/catalog">подпишись на Telegram-канал NiceTry</Link>
             )}
             <button className="close" aria-label="Закрыть" onClick={() => setTopbar(false)}>
-              <svg className="ic ic-sm" viewBox="0 0 24 24">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
+              <BI name="x-lg" size="sm" />
             </button>
           </div>
         </div>
@@ -219,9 +210,7 @@ export default function Header() {
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
             >
-              <svg className="ic" viewBox="0 0 24 24">
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              </svg>
+              <BI name="list" />
             </button>
 
             <Link className="logo" href="/" aria-label="NiceTry">
@@ -251,10 +240,7 @@ export default function Header() {
                 onChange={(e) => setSearch(e.target.value)}
               />
               <button className="go" type="submit" aria-label="Найти">
-                <svg className="ic" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.2-3.2" />
-                </svg>
+                <BI name="search" />
               </button>
             </form>
 
@@ -267,17 +253,11 @@ export default function Header() {
                 onClick={() => setSearchOpen((v) => !v)}
                 type="button"
               >
-                <svg className="ic" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.2-3.2" />
-                </svg>
+                <BI name="search" />
               </button>
               {authUser && (
                 <Link className="balance-chip" href="/profile" title="Баланс">
-                  <svg className="ic" viewBox="0 0 24 24">
-                    <rect x="3" y="6" width="18" height="12" rx="2" />
-                    <path d="M3 10h18" />
-                  </svg>
+                  <BI name="credit-card" />
                   <span className="bval">
                     {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(user?.balance ?? 0)} ₽
                   </span>
@@ -285,11 +265,7 @@ export default function Header() {
               )}
 
               <button className="iconbtn cart-btn" aria-label="Корзина" onClick={() => router.push('/cart')}>
-                <svg className="ic" viewBox="0 0 24 24">
-                  <circle cx="9" cy="20" r="1.4" />
-                  <circle cx="18" cy="20" r="1.4" />
-                  <path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" />
-                </svg>
+                <BI name="cart3" />
                 {totalItems > 0 && <span className="count">{totalItems}</span>}
               </button>
 
@@ -313,22 +289,18 @@ export default function Header() {
         <nav className="catnav">
           <div className="container">
             <Link className="allcats" href="/catalog">
-              <svg className="ic" viewBox="0 0 24 24">
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <BI name="list" />
               Все категории
             </Link>
             {CATNAV.map((item) => (
               <Link key={item.label} href={item.href}>
-                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: item.icon }} />
+                <BI name={item.icon} size="sm" />
                 {item.label}
               </Link>
             ))}
             {user?.is_admin && (
               <Link href="/admin" style={{ marginLeft: 'auto', color: 'var(--blue-700)' }}>
-                <svg className="ic" viewBox="0 0 24 24">
-                  <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" />
-                </svg>
+                <BI name="shield" />
                 Админ-панель
               </Link>
             )}
@@ -339,9 +311,7 @@ export default function Header() {
                 title="Выйти"
                 aria-label="Выйти"
               >
-                <svg className="ic" viewBox="0 0 24 24">
-                  <path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-                </svg>
+                <BI name="box-arrow-right" />
               </button>
             )}
           </div>
@@ -363,9 +333,7 @@ export default function Header() {
                 </svg>
               </Link>
               <button className="iconbtn" aria-label="Закрыть меню" onClick={() => setMenuOpen(false)}>
-                <svg className="ic" viewBox="0 0 24 24">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
+                <BI name="x-lg" />
               </button>
             </div>
 
@@ -382,12 +350,12 @@ export default function Header() {
 
             <nav className="drawer-nav">
               <button onClick={() => go('/catalog')}>
-                <svg className="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                <BI name="list" />
                 Все категории
               </button>
               {CATNAV.map((item) => (
                 <button key={item.label} onClick={() => go(item.href)}>
-                  <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: item.icon }} />
+                  <BI name={item.icon} />
                   {item.label}
                 </button>
               ))}
@@ -396,27 +364,27 @@ export default function Header() {
               {authUser ? (
                 <>
                   <button onClick={() => go('/profile')}>
-                    <svg className="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0114 0" /></svg>
+                    <BI name="person" />
                     Профиль · {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(user?.balance ?? 0)} ₽
                   </button>
                   <button onClick={() => go('/cart')}>
-                    <svg className="ic" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" /></svg>
+                    <BI name="cart3" />
                     Корзина{totalItems > 0 ? ` · ${totalItems}` : ''}
                   </button>
                   {user?.is_admin && (
                     <button onClick={() => go('/admin')}>
-                      <svg className="ic" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" /></svg>
+                      <BI name="shield" />
                       Админ-панель
                     </button>
                   )}
                   <button onClick={() => { setMenuOpen(false); signOut() }} style={{ color: 'var(--red)' }}>
-                    <svg className="ic" viewBox="0 0 24 24"><path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /></svg>
+                    <BI name="box-arrow-right" />
                     Выйти
                   </button>
                 </>
               ) : (
                 <button onClick={() => go('/auth/login')}>
-                  <svg className="ic" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" /></svg>
+                  <BI name="box-arrow-in-right" />
                   Войти / Регистрация
                 </button>
               )}
@@ -425,7 +393,7 @@ export default function Header() {
 
               {LEGAL_LINKS.map((link) => (
                 <button key={link.href} onClick={() => go(link.href)}>
-                  <svg className="ic" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5" /></svg>
+                  <BI name="file-text" />
                   {link.label}
                 </button>
               ))}
@@ -446,13 +414,11 @@ export default function Header() {
           <div className="proxy-modal" onClick={(e) => e.stopPropagation()}>
             <div className="proxy-modal-head">
               <div className="proxy-modal-title">
-                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: PROXY_ICON }} />
+                <BI name="globe2" />
                 Купить прокси
               </div>
               <button className="iconbtn" aria-label="Закрыть" onClick={() => setProxyOpen(false)}>
-                <svg className="ic" viewBox="0 0 24 24">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
+                <BI name="x-lg" />
               </button>
             </div>
             <div className="proxy-modal-body">
@@ -474,13 +440,11 @@ export default function Header() {
           <div className="proxy-modal" onClick={(e) => e.stopPropagation()}>
             <div className="proxy-modal-head">
               <div className="proxy-modal-title">
-                <svg className="ic" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: TELEGRAM_ICON }} />
+                <BI name="send" />
                 Telegram Stars и Premium
               </div>
               <button className="iconbtn" aria-label="Закрыть" onClick={() => setTelegramOpen(false)}>
-                <svg className="ic" viewBox="0 0 24 24">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
+                <BI name="x-lg" />
               </button>
             </div>
             <div className="proxy-modal-body">

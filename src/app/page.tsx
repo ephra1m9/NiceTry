@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Product, Category } from '@/types'
 import { PCard } from '@/components/PCard'
 import { formatProductTitle } from '@/lib/utils'
+import { BI } from '@/components/ui/BI'
 
 /**
  * Главная страница — витрина по эталону index.html (#view-home):
@@ -15,19 +16,16 @@ import { formatProductTitle } from '@/lib/utils'
  * фолбэк-каталог — поэтому витрина наполнена даже без боевых ключей поставщиков.
  */
 
-// Иконки категорий (пути SVG из index.html CATS), подбор по названию
-function categoryIconPaths(name: string): string {
+// Bootstrap Icons имена для категорий, подбор по названию
+function categoryIconName(name: string): string {
   const n = name.toLowerCase()
-  if (n.includes('пополнен')) return '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>'
-  if (n.includes('валют'))
-    return '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h3.5a1.5 1.5 0 010 3H9.5"/>'
-  if (n.includes('ключ'))
-    return '<circle cx="8" cy="15" r="4"/><path d="M11 12l8-8 2 2-2 2 2 2-3 3-2-2"/>'
-  if (n.includes('подписк')) return '<path d="M4 7h16v12H4zM4 7l8 6 8-6"/>'
-  if (n.includes('gift') || n.includes('гифт') || n.includes('карт'))
-    return '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M12 6v13"/>'
-  if (n.includes('аккаунт')) return '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>'
-  return '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16"/>'
+  if (n.includes('пополнен')) return 'check-circle'
+  if (n.includes('валют')) return 'coin'
+  if (n.includes('ключ')) return 'key'
+  if (n.includes('подписк')) return 'envelope'
+  if (n.includes('gift') || n.includes('гифт') || n.includes('карт')) return 'credit-card'
+  if (n.includes('аккаунт')) return 'person'
+  return 'grid'
 }
 
 function plural(n: number, forms: [string, string, string]): string {
@@ -160,9 +158,7 @@ export default function HomePage() {
           </div>
           <div className="promo side">
             <span className="tag">
-              <svg className="ic ic-sm" viewBox="0 0 24 24">
-                <path d="M21 4L3 11l5 2 2 6 3-4 5 4z" />
-              </svg>
+              <BI name="send" size="sm" />
               TELEGRAM
             </span>
             <h3>TG Stars и Premium</h3>
@@ -207,11 +203,7 @@ export default function HomePage() {
                   {cat.icon && (cat.icon.startsWith('/') || cat.icon.startsWith('http')) ? (
                     <img src={cat.icon} alt="" className="w-6 h-6 object-contain" />
                   ) : (
-                    <svg
-                      className="ic"
-                      viewBox="0 0 24 24"
-                      dangerouslySetInnerHTML={{ __html: categoryIconPaths(cat.name) }}
-                    />
+                    <BI name={categoryIconName(cat.name)} />
                   )}
                 </div>
                 <div className="nm">{formatProductTitle(cat.name)}</div>
@@ -223,6 +215,14 @@ export default function HomePage() {
               </div>
             )
           })}
+          {/* Фиксированная плитка раздела «Автоматический донат в игры» */}
+          <div className="cat-tile" onClick={() => router.push('/auto-games')}>
+            <div className="ico">
+              <BI name="controller" />
+            </div>
+            <div className="nm">Донат в игры</div>
+            <div className="ct">Genshin, PUBG, Free Fire…</div>
+          </div>
         </div>
       )}
 

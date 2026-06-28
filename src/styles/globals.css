@@ -198,6 +198,21 @@
     width: 22px;
     height: 22px;
   }
+
+  /* Bootstrap Icons: размеры через класс .ic (аналог svg.ic) */
+  i.ic {
+    font-size: 18px;
+    line-height: 1;
+    flex: none;
+    display: inline-flex;
+  }
+  i.ic.ic-sm { font-size: 16px; }
+  i.ic.ic-lg { font-size: 22px; }
+  i.ic.ic-xl { font-size: 28px; }
+  /* Контекстные размеры (аналог правил для svg.ic) */
+  .catnav a i.ic { font-size: 16px; }
+  .proxy-modal-title i.ic { font-size: 20px; }
+  .empty-state .ico i.ic { font-size: 28px; }
 }
 
 @layer components {

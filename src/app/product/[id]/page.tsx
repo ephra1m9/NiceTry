@@ -11,6 +11,7 @@ import Spinner from '@/components/ui/Spinner'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import { useCart } from '@/hooks/useCart'
 import { formatProductTitle } from '@/lib/utils'
+import { BI } from '@/components/ui/BI'
 
 export default function ProductPage() {
   const params = useParams()
@@ -85,10 +86,7 @@ export default function ProductPage() {
       <div className="container py-10">
         <div className="empty-state card max-w-lg mx-auto">
           <div className="ico">
-            <svg className="ic" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
+            <BI name="info-circle" />
           </div>
           <h3>Товар не найден</h3>
           <p>Возможно, он был снят с продажи. Посмотрите похожие позиции в каталоге.</p>
@@ -106,21 +104,21 @@ export default function ProductPage() {
   const isOutOfStock = product.type === 'instant' && product.stock != null && product.stock <= 0
   const isTopup = product.type === 'topup_auto' || product.type === 'topup_manual'
 
-  const typeInfo: Record<string, { icon: JSX.Element; text: string }> = {
+  const typeInfo: Record<string, { icon: string; text: string }> = {
     instant: {
-      icon: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
+      icon: 'lightning-charge',
       text: 'Товар придёт автоматически сразу после оплаты — на странице заказа и в Telegram.',
     },
     topup_auto: {
-      icon: <><circle cx="12" cy="12" r="9" /><path d="M8 12l3 3 5-6" /></>,
+      icon: 'check-circle',
       text: 'Пополнение выполняется автоматически в течение нескольких минут.',
     },
     topup_manual: {
-      icon: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M3 10h18" /></>,
+      icon: 'credit-card',
       text: 'Пополнение обрабатывается вручную в течение 24 часов.',
     },
     manual: {
-      icon: <><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 9h16" /></>,
+      icon: 'grid',
       text: 'Заказ обрабатывается администратором вручную в течение 24 часов.',
     },
   }
@@ -233,7 +231,7 @@ export default function ProductPage() {
                 />
                 {errors.amount && (
                   <p id="amount-err" className="field-error">
-                    <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M12 8v4M12 16h.01M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>
+                    <BI name="info-circle" size="sm" />
                     {errors.amount}
                   </p>
                 )}
@@ -260,7 +258,7 @@ export default function ProductPage() {
                     />
                     {errors[field.key] && (
                       <p className="field-error">
-                        <svg className="ic ic-sm" viewBox="0 0 24 24"><path d="M12 8v4M12 16h.01M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>
+                        <BI name="info-circle" size="sm" />
                         {errors[field.key]}
                       </p>
                     )}
@@ -281,7 +279,7 @@ export default function ProductPage() {
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
                   >
-                    <svg className="ic" viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
+                    <BI name="dash-lg" />
                   </button>
                   <span className="val" aria-live="polite">{quantity}</span>
                   <button
@@ -290,7 +288,7 @@ export default function ProductPage() {
                     onClick={() => setQuantity(quantity + 1)}
                     disabled={product.type === 'instant' && product.stock !== undefined && quantity >= product.stock}
                   >
-                    <svg className="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                    <BI name="plus-lg" />
                   </button>
                 </div>
                 {product.type === 'instant' && product.stock !== undefined && (
@@ -314,7 +312,7 @@ export default function ProductPage() {
               'Нет в наличии'
             ) : (
               <>
-                <svg className="ic ic-sm" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.4 12.4a1.5 1.5 0 001.5 1.2h8.6a1.5 1.5 0 001.5-1.2L21 7H6" /></svg>
+                <BI name="cart3" size="sm" />
                 {isTopup ? 'Добавить в корзину' : 'В корзину'}
               </>
             )}
@@ -323,9 +321,7 @@ export default function ProductPage() {
           {/* Информация о типе товара */}
           {typeInfo[product.type] && (
             <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-lg bg-gray-bg text-sm text-muted">
-              <svg className="ic ic-sm mt-0.5 flex-none text-blue-700" viewBox="0 0 24 24">
-                {typeInfo[product.type].icon}
-              </svg>
+              <BI name={typeInfo[product.type].icon} size="sm" className="mt-0.5 flex-none text-blue-700" />
               <p>{typeInfo[product.type].text}</p>
             </div>
           )}
@@ -333,12 +329,12 @@ export default function ProductPage() {
           {/* Гарантии-преимущества (паттерн магазинов цифровых товаров) */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             {[
-              { icon: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />, t: 'Быстрая выдача' },
-              { icon: <><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" /><path d="M9 12l2 2 4-4" /></>, t: 'Безопасно' },
-              { icon: <><path d="M21 11.5a8.38 8.38 0 01-9 8.5 8.5 8.5 0 01-3.8-.9L3 20l1.9-5.2A8.5 8.5 0 1121 11.5z" /></>, t: 'Поддержка 24/7' },
+              { icon: 'lightning-charge', t: 'Быстрая выдача' },
+              { icon: 'shield-check', t: 'Безопасно' },
+              { icon: 'chat-dots', t: 'Поддержка 24/7' },
             ].map((b, i) => (
               <div key={i} className="rounded-lg border border-border-2 bg-white py-3 px-2">
-                <svg className="ic mx-auto mb-1 text-blue-700" viewBox="0 0 24 24">{b.icon}</svg>
+                <BI name={b.icon} className="mx-auto mb-1 text-blue-700" />
                 <div className="text-[12px] text-muted font-medium leading-tight">{b.t}</div>
               </div>
             ))}

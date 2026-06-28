@@ -162,7 +162,7 @@ export default function TelegramPurchase({ embedded = false }: { embedded?: bool
             className={`tgs-switch-btn ${mode === 'stars' ? 'tgs-switch-btn--active' : ''}`}
             onClick={() => onMode('stars')}
           >
-            ⭐ Telegram Stars
+            <i className="bi bi-star-fill" style={{ color: '#f59e0b' }} aria-hidden="true" /> Telegram Stars
           </button>
           <button
             type="button"
@@ -171,7 +171,7 @@ export default function TelegramPurchase({ embedded = false }: { embedded?: bool
             className={`tgs-switch-btn ${mode === 'premium' ? 'tgs-switch-btn--active' : ''}`}
             onClick={() => onMode('premium')}
           >
-            💎 Telegram Premium
+            <i className="bi bi-gem" style={{ color: '#a78bfa' }} aria-hidden="true" /> Telegram Premium
           </button>
         </div>
 
@@ -184,7 +184,7 @@ export default function TelegramPurchase({ embedded = false }: { embedded?: bool
         ) : result ? (
           /* ======== УСПЕХ ======== */
           <div className="tgs-success">
-            <div className="tgs-success-ic">✓</div>
+            <div className="tgs-success-ic"><i className="bi bi-check-lg" aria-hidden="true" /></div>
             <div className="tgs-success-title">{result.status === 'completed' ? 'Готово!' : 'Заявка принята'}</div>
             <p className="tgs-success-sub">
               {result.mode === 'stars' ? 'Звёзды' : 'Premium-подписка'} «{result.label}» для @{result.username}

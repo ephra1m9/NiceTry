@@ -255,7 +255,7 @@ export default function SendGamePage() {
             {/* ======== SUCCESS STATE ======== */}
             {pageState === 'success' && orderResult && (
               <div className="sg-success">
-                <div className="sg-success-icon">✓</div>
+                <div className="sg-success-icon"><i className="bi bi-check-lg" aria-hidden="true" /></div>
                 <h2 className="sg-success-title">Заказ оформлен</h2>
                 <p className="sg-success-status">
                   {orderResult.status === 'delivered' ? 'Игра отправлена получателю' : 'Заказ в обработке'}
@@ -301,7 +301,7 @@ export default function SendGamePage() {
                       <SkeletonGrid />
                     ) : games.length === 0 ? (
                       <div className="sg-empty">
-                        <span className="sg-empty-icon">🎮</span>
+                        <i className="bi bi-controller sg-empty-icon" aria-hidden="true" />
                         <p>{search ? 'Ничего не найдено. Попробуйте другой запрос.' : 'Игры не найдены'}</p>
                       </div>
                     ) : (
@@ -572,7 +572,7 @@ function Stepper({
               disabled={!clickable}
               className={`sg-step-bubble ${isActive ? 'sg-step-bubble--active' : ''} ${isDone ? 'sg-step-bubble--done' : ''}`}
             >
-              {isDone ? '✓' : s.num}
+              {isDone ? <i className="bi bi-check-lg" aria-hidden="true" /> : s.num}
             </button>
             <span className={`sg-step-label ${isActive ? 'sg-step-label--active' : ''}`}>
               {s.label}
@@ -600,7 +600,7 @@ function GameCard({ game, selected, onSelect }: { game: GameEntry; selected: boo
         aspect
       />
       <span className="sg-game-name">
-        {game.popular && <span className="sg-game-star">★ </span>}
+        {game.popular && <i className="bi bi-star-fill sg-game-star" aria-hidden="true" />}{' '}
         {game.name}
       </span>
     </button>

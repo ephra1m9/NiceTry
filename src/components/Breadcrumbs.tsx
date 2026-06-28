@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BI } from '@/components/ui/BI'
 
 export interface Crumb {
   label: string
@@ -20,11 +21,7 @@ export default function Breadcrumbs({ items }: { items: Crumb[] }) {
             ) : (
               <span className={last ? 'text-navy font-medium' : ''}>{item.label}</span>
             )}
-            {!last && (
-              <svg className="ic ic-sm text-muted-2" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            )}
+            {!last && <BI name="chevron-right" size="sm" className="text-muted-2" />}
           </span>
         )
       })}
