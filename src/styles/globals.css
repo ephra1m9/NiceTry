@@ -1640,6 +1640,45 @@
   text-decoration: underline;
 }
 
+/* ===== Страница доната в игры ===== */
+.game-topup-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.game-topup-denoms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.game-topup-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .game-topup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-topup-cover {
+    max-width: 160px;
+  }
+
+  .game-topup-denoms {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .game-topup-benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== Telegram Mini App (узкое мобильное окно) ===== */
 /* В Mini App Telegram сам рисует заголовок и кнопку меню (web_app), поэтому сайтовые
    шапку и подвал прячем — остаётся чистая витрина без дублирующей навигации и без

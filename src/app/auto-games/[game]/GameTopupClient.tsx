@@ -119,10 +119,10 @@ export default function GameTopupClient({ game, denominations }: Props) {
         <span>{game.name}</span>
       </div>
 
-      <div className="product-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px,280px) 1fr', gap: 32, alignItems: 'start' }}>
+      <div className="game-topup-grid">
           {/* Обложка */}
           <div
+            className="game-topup-cover"
             style={{
               background: game.image_url ? undefined : gradient,
               borderRadius: 16,
@@ -241,7 +241,7 @@ export default function GameTopupClient({ game, denominations }: Props) {
                   {regionField ? 'Выберите регион для отображения пакетов' : 'Пакеты пока не добавлены'}
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10 }}>
+                <div className="game-topup-denoms">
                   {visibleDenominations.map((denom) => {
                     const isSelected = selectedDenomId === denom.id
                     return (
@@ -354,7 +354,7 @@ export default function GameTopupClient({ game, denominations }: Props) {
             </Button>
 
             {/* Бенефиты */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 20 }}>
+            <div className="game-topup-benefits">
               {[
                 { icon: 'lightning-charge', title: 'Мгновенно', sub: 'Зачисление сразу после оплаты' },
                 { icon: 'shield-check', title: 'Безопасно', sub: 'Платёж через защищённый шлюз' },
@@ -368,8 +368,8 @@ export default function GameTopupClient({ game, denominations }: Props) {
               ))}
             </div>
           </div>
-        </div>
       </div>
     </div>
   )
 }
+
