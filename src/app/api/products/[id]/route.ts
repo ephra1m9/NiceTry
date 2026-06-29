@@ -19,7 +19,7 @@ export async function GET(
     // ссылки из фолбэк-каталога содержат denomination_id, а не UUID.
     let { data: product, error } = await supabase
       .from('products')
-      .select('*, category:categories(id, name, slug)')
+      .select('*, category:categories(id, name, slug, default_image_url)')
       .eq('id', id)
       .eq('is_active', true)
       .maybeSingle()
@@ -27,7 +27,7 @@ export async function GET(
     if (!product) {
       const res = await supabase
         .from('products')
-        .select('*, category:categories(id, name, slug)')
+        .select('*, category:categories(id, name, slug, default_image_url)')
         .eq('denomination_id', id)
         .eq('is_active', true)
         .maybeSingle()
@@ -57,6 +57,10 @@ export async function GET(
         .eq('product_id', id)
         .eq('is_used', false)
       product.stock = count || 0
+    }
+
+    if (!product.image_url && product.category?.default_image_url) {
+      product.image_url = product.category.default_image_url
     }
 
     return NextResponse.json({ product })

@@ -12,6 +12,7 @@ export default function NewCategoryPage() {
     name: '',
     slug: '',
     icon: '',
+    default_image_url: '',
     markup_percent: '14',
     usd_to_rub_rate: '80',
     supplier: '',
@@ -58,6 +59,7 @@ export default function NewCategoryPage() {
         name: formData.name,
         slug: formData.slug || undefined,
         icon: formData.icon || undefined,
+        default_image_url: formData.default_image_url || null,
         markup_percent: parseFloat(formData.markup_percent),
         usd_to_rub_rate: parseFloat(formData.usd_to_rub_rate),
         supplier: formData.supplier || undefined,
@@ -128,6 +130,15 @@ export default function NewCategoryPage() {
               <ImageUploadField
                 value={formData.icon}
                 onChange={(url) => setFormData((prev) => ({ ...prev, icon: url }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-navy mb-2">Изображение для товаров по умолчанию</label>
+              <p className="text-xs text-muted mb-2">Будет показано у товаров этой категории, у которых нет собственного изображения.</p>
+              <ImageUploadField
+                value={formData.default_image_url}
+                onChange={(url) => setFormData((prev) => ({ ...prev, default_image_url: url }))}
               />
             </div>
 

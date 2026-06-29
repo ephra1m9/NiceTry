@@ -91,6 +91,7 @@ export interface Category {
   name: string
   slug: string
   icon?: string
+  default_image_url?: string | null
   markup_percent: number
   supplier: 'approute' | 'dessly'
   is_active: boolean

@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       name: String(body.name),
       slug,
       icon: body.icon ? String(body.icon) : null,
+      default_image_url: body.default_image_url ? String(body.default_image_url) : null,
       markup_percent: body.markup_percent !== undefined ? Number(body.markup_percent) : 14,
       usd_to_rub_rate: body.usd_to_rub_rate !== undefined ? Number(body.usd_to_rub_rate) : 80,
       supplier: body.supplier || null,

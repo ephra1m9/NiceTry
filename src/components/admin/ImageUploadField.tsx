@@ -38,7 +38,7 @@ export function ImageUploadField({ value, onChange }: { value: string; onChange:
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="btn btn-outline btn-sm"
+          className="btn btn-ghost btn-sm"
           style={{ whiteSpace: 'nowrap' }}
         >
           {uploading ? 'Загрузка…' : value ? '↻ Заменить' : '↑ Загрузить'}

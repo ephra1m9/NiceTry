@@ -81,18 +81,22 @@ export async function GET(request: NextRequest) {
       }
 
       const categoryIds = Array.from(new Set(products.map((p: any) => p.category_id).filter(Boolean)))
-      const categoryMap: Record<string, { id: string; name: string; slug: string }> = {}
+      const categoryMap: Record<string, { id: string; name: string; slug: string; default_image_url?: string | null }> = {}
       if (categoryIds.length > 0) {
         const { data: catRows } = await supabase
           .from('categories')
-          .select('id, name, slug')
+          .select('id, name, slug, default_image_url')
           .in('id', categoryIds)
         for (const c of catRows || []) categoryMap[c.id] = c
       }
-      const withCategories = products.map((p: any) => ({
-        ...p,
-        category: p.category_id ? categoryMap[p.category_id] || null : null,
-      }))
+      const withCategories = products.map((p: any) => {
+        const cat = p.category_id ? categoryMap[p.category_id] || null : null
+        return {
+          ...p,
+          image_url: p.image_url || cat?.default_image_url || undefined,
+          category: cat,
+        }
+      })
       return NextResponse.json({ products: withCategories, total: count || products.length, limit, offset })
     })()
 
