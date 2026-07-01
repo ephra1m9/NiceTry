@@ -16,18 +16,6 @@
   ],
   "approuteServices": [
     {
-      "id": "svc_steam_giftcard", "name": "Steam Gift Card", "ordersType": "shop", "categorySlug": "steam",
-      "description": "Пополнение кошелька Steam подарочным кодом. Моментальная выдача.",
-      "regions": ["US", "AE", "TR", "VN", "EU", "IN", "HK", "ID"],
-      "items": [
-        { "id": "den_steam_5", "name": "$5", "price": 5, "currency": "USD", "inStock": true },
-        { "id": "den_steam_10", "name": "$10", "price": 10, "currency": "USD", "inStock": true },
-        { "id": "den_steam_20", "name": "$20", "price": 20, "currency": "USD", "inStock": true },
-        { "id": "den_steam_50", "name": "$50", "price": 50, "currency": "USD", "inStock": true },
-        { "id": "den_steam_100", "name": "$100", "price": 100, "currency": "USD", "inStock": false }
-      ]
-    },
-    {
       "id": "svc_steam_topup", "name": "Пополнение Steam (авто)", "ordersType": "dtu", "categorySlug": "steam",
       "description": "Автоматическое пополнение баланса Steam по логину. Введите сумму в ₽.",
       "minAmountUsd": 1, "maxAmountUsd": 500,

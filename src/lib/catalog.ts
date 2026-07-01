@@ -233,7 +233,7 @@ async function _doBuildCatalog(opts?: { live?: boolean }): Promise<Product[]> {
 
   const [services, games] = await Promise.all([
     opts?.live
-      ? listServices().catch(() => staticServices)
+      ? listServices()
       : Promise.race([
           listServices(),
           new Promise<AppRouteService[]>((resolve) =>
