@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ProductType } from '@/types'
+import REGIONS from '@/data/regions.json'
 
 interface Category {
   id: string
@@ -26,6 +27,7 @@ interface Product {
   min_amount?: number
   max_amount?: number
   image_url?: string
+  region?: string | null
 }
 
 export default function EditProductPage() {
@@ -267,6 +269,25 @@ export default function EditProductPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-navy mb-2">
+                Регион
+              </label>
+              <select
+                name="region"
+                value={product.region ?? ''}
+                onChange={handleChange}
+                className="input"
+              >
+                <option value="">Не указан</option>
+                {REGIONS.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.code} — {r.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

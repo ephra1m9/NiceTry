@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProductType } from '@/types'
+import REGIONS from '@/data/regions.json'
+import { ImageUploadField } from '@/components/admin/ImageUploadField'
 
 interface Category {
   id: string
@@ -30,6 +32,7 @@ export default function NewProductPage() {
     min_amount: '',
     max_amount: '',
     image_url: '',
+    region: '',
   })
 
   useEffect(() => {
@@ -179,6 +182,25 @@ export default function NewProductPage() {
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-navy mb-2">
+                Регион
+              </label>
+              <select
+                name="region"
+                value={formData.region}
+                onChange={handleChange}
+                className="input"
+              >
+                <option value="">Не указан</option>
+                {REGIONS.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.code} — {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -273,6 +295,7 @@ export default function NewProductPage() {
               >
                 <option value="approute">AppRoute</option>
                 <option value="dessly">Dessly</option>
+                <option value="nicetry">NiceTry</option>
               </select>
             </div>
 
@@ -304,14 +327,11 @@ export default function NewProductPage() {
 
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">
-                URL изображения
+                Изображение
               </label>
-              <input
-                type="text"
-                name="image_url"
+              <ImageUploadField
                 value={formData.image_url}
-                onChange={handleChange}
-                className="input"
+                onChange={(url) => setFormData((prev) => ({ ...prev, image_url: url }))}
               />
             </div>
           </div>

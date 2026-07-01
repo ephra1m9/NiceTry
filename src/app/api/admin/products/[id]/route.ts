@@ -63,6 +63,7 @@ const PRODUCT_UPDATABLE_COLUMNS = [
   'max_amount',
   'image_url',
   'sort_order',
+  'region',
 ] as const
 
 // PATCH /api/admin/products/[id] - обновление товара

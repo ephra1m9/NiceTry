@@ -77,7 +77,7 @@ CREATE TABLE products (
   original_price DECIMAL(10, 2),
   stock INTEGER,
   is_active BOOLEAN DEFAULT TRUE,
-  supplier TEXT CHECK (supplier IN ('approute', 'dessly')),
+  supplier TEXT CHECK (supplier IN ('approute', 'dessly', 'nicetry')),
   supplier_service_id TEXT,
   denomination_id TEXT,
   supplier_fields JSONB,

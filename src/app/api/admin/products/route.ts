@@ -107,13 +107,14 @@ export async function POST(request: NextRequest) {
         stock: body.stock,
         is_active: body.is_active ?? true,
         supplier: body.supplier,
-        supplier_service_id: body.supplier_service_id,
-        denomination_id: body.denomination_id,
+        supplier_service_id: body.supplier_service_id || null,
+        denomination_id: body.denomination_id || null,
         supplier_fields: body.supplier_fields,
         min_amount: body.min_amount,
         max_amount: body.max_amount,
         image_url: body.image_url,
         sort_order: body.sort_order ?? 0,
+        region: body.region || null,
       })
       .select()
       .single()
