@@ -1136,6 +1136,7 @@ export default function AdminSettingsPage() {
                             <ImageUploadField
                               value={String(editGameData.image_url ?? game.image_url ?? '')}
                               onChange={(url) => setEditGameData({ ...editGameData, image_url: url || null })}
+                              showPath={false}
                             />
                           </td>
                           <td className="p-3 text-center">

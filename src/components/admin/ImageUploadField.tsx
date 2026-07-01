@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 
-export function ImageUploadField({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+export function ImageUploadField({ value, onChange, showPath = true }: { value: string; onChange: (url: string) => void; showPath?: boolean }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -41,9 +41,9 @@ export function ImageUploadField({ value, onChange }: { value: string; onChange:
           className="btn btn-ghost btn-sm"
           style={{ whiteSpace: 'nowrap' }}
         >
-          {uploading ? 'Загрузка…' : value ? '↻ Заменить' : '↑ Загрузить'}
+          {uploading ? 'Загрузка…' : value ? 'Заменить' : 'Загрузить'}
         </button>
-        {value && (
+        {value && showPath && (
           <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
             {value}
           </span>

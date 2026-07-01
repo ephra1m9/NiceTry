@@ -8,7 +8,6 @@
 // Наценка и курс берутся из категории (плейсхолдеры в catalog.json, редактируются в админке).
 
 import catalog from '@/data/catalog.json'
-import brandLogos from '@/data/approute-brand-logos.json'
 import { listServices, type AppRouteService } from '@/lib/approute'
 import { mockServices } from '@/lib/approute/mock'
 import { mapServiceToCategorySlug, extractRegion } from '@/lib/approute/category-map'
@@ -47,22 +46,16 @@ function pickImageUrl(obj: unknown): string | undefined {
   }
   return undefined
 }
-function steamHeader(appId?: number): string | undefined {
-  return appId
-    ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`
-    : undefined
-}
-// Логотип бренда по section: боевой AppRoute картинок не отдаёт (см. WORKLOG 2026-06-05), поэтому
-// обложку даём как логотип бренда (Google favicon sz=256 по домену из approute-brand-logos.json).
-// Родовые section (Mobile, TV, Games…) в карту не входят → undefined → градиент-фолбэк PCard.
-const BRAND_DOMAINS: Record<string, string> = brandLogos.domains
-function brandLogo(section?: string): string | undefined {
-  const domain = section ? BRAND_DOMAINS[section.trim()] : undefined
-  return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : undefined
-}
-/** Обложка SKU: номинал → сервис → Steam header.jpg по appId → логотип бренда по section. */
+/**
+ * Обложка SKU: только честные данные от поставщика (номинал → сервис). Боевой AppRoute почти
+ * никогда не отдаёт картинки (см. WORKLOG 2026-06-05) — раньше здесь был суррогатный фолбэк
+ * (Steam header.jpg по appId / Google favicon по бренду), но синк безусловно перезаписывал им
+ * image_url при КАЖДОМ прогоне, затирая как отсутствие картинки, так и уже настроенный
+ * default_image_url категории. Теперь при отсутствии реальной картинки поле остаётся пустым,
+ * и на чтении срабатывает фолбэк на category.default_image_url (см. /api/products).
+ */
 function serviceImage(svc: AppRouteService, den?: unknown): string | undefined {
-  return pickImageUrl(den) ?? pickImageUrl(svc) ?? steamHeader(svc.appId) ?? brandLogo(svc.section)
+  return pickImageUrl(den) ?? pickImageUrl(svc)
 }
 
 function catFromRaw(raw: RawCategory): CatalogCategory {

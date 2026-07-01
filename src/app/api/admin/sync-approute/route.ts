@@ -126,21 +126,25 @@ export async function POST() {
       }
 
       if (existingId) {
+        // image_url включаем в апдейт только когда поставщик реально прислал картинку —
+        // иначе затираем то, что уже есть в БД (в т.ч. пусто → работает default_image_url
+        // категории, см. комментарий у serviceImage() в catalog.ts).
+        const updatePayload: Record<string, unknown> = {
+          name: row.name,
+          description: row.description,
+          price: row.price,
+          stock: row.stock,
+          is_active: row.is_active,
+          min_amount: row.min_amount,
+          max_amount: row.max_amount,
+          supplier_fields: row.supplier_fields,
+          region: row.region,
+          updated_at: new Date().toISOString(),
+        }
+        if (row.image_url) updatePayload.image_url = row.image_url
         const { error } = await supabase
           .from('products')
-          .update({
-            name: row.name,
-            description: row.description,
-            price: row.price,
-            stock: row.stock,
-            is_active: row.is_active,
-            min_amount: row.min_amount,
-            max_amount: row.max_amount,
-            supplier_fields: row.supplier_fields,
-            image_url: row.image_url,
-            region: row.region,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq('id', existingId)
         if (error) {
           failed++

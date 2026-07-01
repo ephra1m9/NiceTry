@@ -75,7 +75,11 @@ const priceRub = (usd, rate, markup) => Math.ceil((usd * rate * (100 + markup)) 
 
 // Обложка SKU. Зеркало pickImageUrl/serviceImage из src/lib/catalog.ts: берём первое валидное
 // абсолютное http(s)-поле из распространённых имён (имя в боевом API уточняется дампом
-// scripts/_dump_approute.mjs), иначе дериватив Steam header.jpg по appId сервиса.
+// scripts/_dump_approute.mjs). Раньше при отсутствии картинки от поставщика подставлялся
+// суррогат (Steam header.jpg / Google favicon по бренду), но синк безусловно перезаписывал им
+// image_url при КАЖДОМ прогоне, затирая default_image_url категории. Теперь при отсутствии
+// честных данных от поставщика поле остаётся пустым — на чтении срабатывает фолбэк на
+// category.default_image_url.
 const IMAGE_KEYS = [
   'imageUrl', 'image', 'imageURL', 'iconUrl', 'icon', 'logoUrl', 'logo',
   'coverUrl', 'cover', 'pictureUrl', 'picture', 'thumbnailUrl', 'thumbnail', 'imgUrl', 'img',
@@ -88,20 +92,7 @@ const pickImageUrl = (obj) => {
   }
   return null
 }
-const steamHeader = (appId) =>
-  appId ? `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg` : null
-// Логотип бренда по section: боевой AppRoute картинок не отдаёт (см. WORKLOG 2026-06-05), поэтому
-// обложку даём логотипом бренда (Google favicon sz=256 по домену из approute-brand-logos.json).
-// Зеркало brandLogo() из src/lib/catalog.ts. Родовые section (Mobile, TV…) в карту не входят → null.
-const BRAND_DOMAINS = JSON.parse(
-  readFileSync(join(root, 'src/data/approute-brand-logos.json'), 'utf8')
-).domains
-const brandLogo = (section) => {
-  const domain = section ? BRAND_DOMAINS[section.trim()] : null
-  return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : null
-}
-const serviceImage = (svc, den) =>
-  pickImageUrl(den) ?? pickImageUrl(svc) ?? steamHeader(svc.appId) ?? brandLogo(svc.section)
+const serviceImage = (svc, den) => pickImageUrl(den) ?? pickImageUrl(svc)
 
 // Таймауты запросов (чтобы синк не висел бесконечно) и размер пачки записи.
 // BATCH_SIZE=25: на боевом прогоне 2026-06-05 эта сеть рвёт POST-тела к Supabase больше ~28КБ
@@ -361,7 +352,25 @@ async function run() {
     console.log(`  + добавлено ${imported}/${toInsert.length}`)
   }
 
-  for (const part of chunk(toUpdate, BATCH_SIZE)) {
+  // image_url обновляем только когда поставщик реально прислал картинку (row.image_url не null) —
+  // иначе затираем то, что уже есть в БД (пусто → работает default_image_url категории, см.
+  // комментарий у serviceImage() выше). Ключ полностью убираем из объекта (а не ставим null),
+  // чтобы PostgREST не трогал колонку при upsert. Разбиваем на две подгруппы, чтобы набор колонок
+  // внутри каждой пачки оставался однородным (см. комментарий выше про insert/update пачки).
+  const toUpdateWithImage = toUpdate.filter((r) => r.image_url)
+  const toUpdateNoImage = toUpdate.filter((r) => !r.image_url).map((r) => {
+    const { image_url, ...rest } = r
+    return rest
+  })
+
+  for (const part of chunk(toUpdateWithImage, BATCH_SIZE)) {
+    await withRetry(`Обновление пачки (${part.length})`, () =>
+      supabase.from('products').upsert(part, { onConflict: 'id' }).abortSignal(AbortSignal.timeout(DB_TIMEOUT_MS))
+    )
+    updated += part.length
+    console.log(`  ~ обновлено ${updated}/${toUpdate.length}`)
+  }
+  for (const part of chunk(toUpdateNoImage, BATCH_SIZE)) {
     await withRetry(`Обновление пачки (${part.length})`, () =>
       supabase.from('products').upsert(part, { onConflict: 'id' }).abortSignal(AbortSignal.timeout(DB_TIMEOUT_MS))
     )
